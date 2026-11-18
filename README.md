@@ -39,6 +39,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | `mise` | `.default-gems` | `ruby-lsp`, installed with every Ruby mise installs | mise |
 | `herdr` | `.config/herdr/config.toml` | Herdr keys like tmux: `Ctrl+Alt+h/j/k/l` and `prefix h/j/k/l` focus panes, `prefix \|` / `prefix -` split, `prefix X` close tab, `Alt+Shift+H/L` tabs (owned outright, see below) | Herdr |
 | `bin` | `.local/bin/wt` | Git worktrees with their own ports, Docker project and databases, fully cleaned up on removal (run `wt` for help) | Claude Code's `WorktreeCreate` / `WorktreeRemove` hooks, or by hand |
+| `claude` | `.claude/hooks/block-*.sh` | Claude Code safety hooks: no bare `bin/ci` on `main`/`develop`/`testing` (it signs off and deploys), no destructive database commands | `PreToolUse` hooks merged into `~/.claude/settings.json` by `install-overrides.sh` |
 
 ## Editing and applying changes
 
