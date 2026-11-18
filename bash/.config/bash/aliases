@@ -1,0 +1,61 @@
+# Personal aliases and functions.
+# Loaded from ~/.bashrc after Omarchy's defaults, so anything here wins.
+# See Omarchy's own with: alias
+
+# Ruby / Bundler
+alias be='bundle exec'
+alias bi='bundle install'
+
+# Tools
+alias vim='nvim'
+alias lg='lazygit'
+alias lzg='lazygit'
+alias lzd='lazydocker'
+
+# Docker Compose (Rails apps; the main service is called "app")
+alias dcb='docker compose build'
+alias dcbc='docker compose build --no-cache'
+alias dcbb='docker compose build && docker compose run --rm app bundle install'
+alias dcx='docker compose restart'
+alias dce='docker compose exec app'
+
+# Start in the background and follow logs. Removes a stale Rails server.pid
+# first, which otherwise stops the server booting after a crash.
+alias dcu='rm -f tmp/pids/server.pid && docker compose up -d && docker compose logs -f'
+
+# Stop / tear down. --profile '*' includes profiled services (chrome-server);
+# without it they keep running and `down` can't remove the network.
+alias dcs="docker compose --profile '*' stop"
+alias dcd="docker compose --profile '*' down --remove-orphans"
+
+# Clean up unused images, containers and networks. Deliberately no --volumes:
+# with the stacks down that would delete every development database.
+# Drop one on purpose with: docker volume rm <project>_postgres_data
+alias dclean='docker system prune -f'
+
+# dcr: run a one-off command in the app container, e.g. `dcr bin/rails console`.
+# For system tests it also starts the chrome-server (Selenium) container,
+# waits until it's healthy, and stops it again afterwards.
+unalias dcr 2>/dev/null || true   # dcr used to be an alias; an old one would break this definition
+dcr() {
+  local wants_chrome=""
+  case " $* " in
+    *test/system*|*test:system*|" bin/test "|*bin/ci*)
+      # chrome-server sits behind a compose profile, so it only shows up
+      # in the service list when that profile is enabled.
+      docker compose --profile test config --services 2>/dev/null |
+        grep -qx chrome-server && wants_chrome=1
+      ;;
+  esac
+
+  if [ -z "$wants_chrome" ]; then
+    docker compose run --rm app "$@"
+    return
+  fi
+
+  docker compose up -d --wait chrome-server
+  docker compose run --rm app "$@"
+  local status=$?
+  docker compose stop chrome-server >/dev/null 2>&1   # skipped on Ctrl-C; dcs/dcd clean up
+  return $status
+}
