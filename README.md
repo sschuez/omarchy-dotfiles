@@ -51,7 +51,7 @@ here.
 | Bash | Open a new terminal |
 | Hyprland | `hyprctl reload && hyprctl configerrors` |
 | Keyboard layout | `hyprctl reload`, then `~/Code/omarchy-supplement/install-keyboard.sh` |
-| XCompose | `omarchy restart xcompose` |
+| XCompose | Edit the rules in `xcompose/.config/xcompose/generate-dead-keys`, run it, then `omarchy restart xcompose` |
 | tmux | `prefix q` |
 | Neovim | Restart Neovim. Toggle extras with `:LazyExtras`; the change lands in `lazyvim.json` here. |
 
