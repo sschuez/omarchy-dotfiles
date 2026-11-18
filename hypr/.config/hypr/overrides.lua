@@ -16,6 +16,38 @@ hl.config({ decoration = { rounding = 2 } })
 -- omarchy-supplement makes fcitx5 match.
 hl.config({ input = { kb_options = "ctrl:nocaps" } })
 
+-- Super+[ / Super+] step through all ten workspaces, empty ones included,
+-- wrapping 10 -> 1 and 1 -> 10. (Omarchy's Super+Tab skips empty ones.)
+local function cycle_workspace(step)
+  return function()
+    local workspace = hl.get_active_workspace()
+    local current = (workspace and not workspace.special and workspace.id > 0) and workspace.id or 1
+    hl.dispatch(hl.dsp.focus({ workspace = tostring((current - 1 + step) % 10 + 1) }))
+  end
+end
+o.bind("SUPER + BRACKETLEFT", "Previous workspace", cycle_workspace(-1))
+o.bind("SUPER + BRACKETRIGHT", "Next workspace", cycle_workspace(1))
+
+-- Alt+[ / Alt+] for previous/next browser tab: sends Ctrl+PgUp/PgDn, but only
+-- when a browser is focused. Non-consuming, so terminals and Neovim still get
+-- Alt+[ themselves. Down and up are sent separately, as in Omarchy's clipboard
+-- bindings, so the synthetic key doesn't get stuck repeating.
+local browsers = { chromium = true, ["google-chrome"] = true, ["brave-browser"] = true, firefox = true }
+local function browser_shortcut(mods, key)
+  return function()
+    local window = hl.get_active_window()
+    if not (window and browsers[window.class]) then
+      return
+    end
+    hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "down" }))
+    hl.timer(function()
+      hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "up" }))
+    end, { timeout = 50, type = "oneshot" })
+  end
+end
+o.bind("ALT + BRACKETLEFT", "Previous browser tab", browser_shortcut("CTRL", "Page_Up"), { non_consuming = true })
+o.bind("ALT + BRACKETRIGHT", "Next browser tab", browser_shortcut("CTRL", "Page_Down"), { non_consuming = true })
+
 -- Fixed workspaces: each app always opens on its own workspace, and you're
 -- taken there. Use "<n> silent" instead to open it there without switching.
 -- Find an app's class with: hyprctl clients

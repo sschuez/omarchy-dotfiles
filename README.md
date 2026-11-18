@@ -27,7 +27,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | Package | Files in `~` | What | Loaded by |
 |---|---|---|---|
 | `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests) | Include line in `~/.bashrc` |
-| `hypr` | `.config/hypr/overrides.lua` | Caps Lock as Ctrl, window rounding, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/Signal, 6 Claude, 7 Files) | Include line in `~/.config/hypr/hyprland.lua` |
+| `hypr` | `.config/hypr/overrides.lua` | Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Alt+[` / `Alt+]` previous/next browser tab, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/Signal, 6 Claude, 7 Files) | Include line in `~/.config/hypr/hyprland.lua` |
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
 | `xcompose` | `.config/xcompose/dead-keys` | Windows-style dead keys: they combine with vowels only (plus ç, ñ), so `I'm`, `"hello"` and `''` type as-is | Include line in `~/.XCompose` |
