@@ -48,6 +48,41 @@ end
 o.bind("ALT + BRACKETLEFT", "Previous browser tab", browser_shortcut("CTRL", "Page_Up"), { non_consuming = true })
 o.bind("ALT + BRACKETRIGHT", "Next browser tab", browser_shortcut("CTRL", "Page_Down"), { non_consuming = true })
 
+-- Window Overview, my shell plugin (github.com/sschuez/omarchy-window-overview,
+-- installed by omarchy-supplement): every window as a live thumbnail, type to
+-- search, Enter to jump there. The plugin listens on Hyprland global
+-- shortcuts, so a keypress starts no process.
+o.bind("SUPER + E", "Window Overview", hl.dsp.global("window-overview:toggle"))
+-- No compositor fade on the overview: it should just be there.
+hl.layer_rule({ match = { namespace = "window-overview" }, no_anim = true, animation = "none" })
+
+-- Alt+Tab switches windows the Mac way, through the same plugin: hold Alt, tap
+-- Tab to step through the windows, most recently used first, and let go of Alt
+-- to jump to the selected one. Shift goes backwards. Replaces Omarchy's
+-- Alt+Tab, which only cycles the windows of the current workspace.
+-- A release bind on Alt is skipped once another key (Tab) was pressed during
+-- the hold, so Alt is watched while a switch is under way instead.
+local switching = false
+local function watch_alt()
+  if hl.is_key_down("Alt_L") or hl.is_key_down("Alt_R") then
+    hl.timer(watch_alt, { timeout = 15, type = "oneshot" })
+  else
+    switching = false
+    hl.dispatch(hl.dsp.global("window-overview:switch-commit"))
+  end
+end
+local function switch_window(direction)
+  return function()
+    hl.dispatch(hl.dsp.global("window-overview:switch-" .. direction))
+    if not switching then
+      switching = true
+      watch_alt()
+    end
+  end
+end
+o.rebind("ALT + TAB", "Switch window", switch_window("next"), { repeating = true })
+o.rebind("ALT + SHIFT + TAB", "Switch window back", switch_window("previous"), { repeating = true })
+
 -- Fixed workspaces: each app always opens on its own workspace, and you're
 -- taken there. Use "<n> silent" instead to open it there without switching.
 -- Find an app's class with: hyprctl clients

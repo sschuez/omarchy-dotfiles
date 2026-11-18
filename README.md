@@ -27,7 +27,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | Package | Files in `~` | What | Loaded by |
 |---|---|---|---|
 | `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests) | Include line in `~/.bashrc` |
-| `hypr` | `.config/hypr/overrides.lua` | Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Alt+[` / `Alt+]` previous/next browser tab, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/Signal, 6 Claude, 7 Files) | Include line in `~/.config/hypr/hyprland.lua` |
+| `hypr` | `.config/hypr/overrides.lua` | Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Alt+Tab`), apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/Signal, 6 Claude, 7 Files) | Include line in `~/.config/hypr/hyprland.lua` |
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
 | `xcompose` | `.config/xcompose/dead-keys` | Windows-style dead keys: they combine with vowels only (plus ç, ñ), so `I'm`, `"hello"` and `''` type as-is | Include line in `~/.XCompose` |
@@ -50,10 +50,28 @@ here.
 |---|---|
 | Bash | Open a new terminal |
 | Hyprland | `hyprctl reload && hyprctl configerrors` |
+| Shell plugins | `omarchy restart shell` (the shell doesn't notice edits made through the symlinks) |
+| Window Overview | Lives in its own repo, see below |
 | Keyboard layout | `hyprctl reload`, then `~/Code/omarchy-supplement/install-keyboard.sh` |
 | XCompose | Edit the rules in `xcompose/.config/xcompose/generate-dead-keys`, run it, then `omarchy restart xcompose` |
 | tmux | `prefix q` |
 | Neovim | Restart Neovim. Toggle extras with `:LazyExtras`; the change lands in `lazyvim.json` here. |
+
+## Window Overview
+
+`Super+E` shows every window on every workspace as a live thumbnail (type to
+search, a number jumps to that workspace's window, `Ctrl+W` closes one), and
+`Alt+Tab` switches windows the Mac way. It is my shell plugin
+[omarchy-window-overview](https://github.com/sschuez/omarchy-window-overview),
+kept in its own repo so it can be listed in Omarchy's plugin marketplace. Only
+its keys are here, in `hypr/.config/hypr/overrides.lua`.
+
+omarchy-supplement's `install-overrides.sh` installs it with
+`omarchy plugin add`; update it with
+`omarchy plugin update io.github.sschuez.window-overview`. To work on it, clone
+it to `~/Code/omarchy-window-overview`, link
+`~/.config/omarchy/plugins/io.github.sschuez.window-overview` to that folder,
+and run `omarchy restart shell` after each change.
 
 ## Adding a package
 
