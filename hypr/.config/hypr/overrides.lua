@@ -9,6 +9,9 @@
 -- Rounded corners
 hl.config({ decoration = { rounding = 2 } })
 
--- Keyboard: US International with dead keys (" then a = ä), Caps Lock as an extra Ctrl.
--- kb_options replaces Omarchy's default (Shift+Caps = Compose), which dead keys make unnecessary.
-hl.config({ input = { kb_layout = "us", kb_variant = "intl", kb_options = "ctrl:nocaps" } })
+-- Keyboard: Caps Lock as an extra Ctrl.
+-- Replaces Omarchy's kb_options (Shift+Caps = Compose); US International's
+-- dead keys (" then a = ä) cover accents instead. The layout itself lives in
+-- ~/.config/omarchy/keyboard-layouts (omarchy package); install-keyboard.sh in
+-- omarchy-supplement makes fcitx5 match.
+hl.config({ input = { kb_options = "ctrl:nocaps" } })
