@@ -9,6 +9,12 @@
 -- Rounded corners
 hl.config({ decoration = { rounding = 2 } })
 
+-- Apple Studio Display (5120x2880) at 2.5x, i.e. 2048x1152 of space.
+-- Matched by its name, not its port, so it follows the display to any machine
+-- and leaves the laptop screen alone. Between 2x (tiny) and 3.2x (huge), 2.5
+-- and 2.133333 are the only scales that stay pixel-exact on this panel.
+hl.monitor({ output = "desc:Apple Computer Inc StudioDisplay", mode = "preferred", position = "auto", scale = 2.5 })
+
 -- Keyboard: Caps Lock as an extra Ctrl.
 -- Replaces Omarchy's kb_options (Shift+Caps = Compose); US International's
 -- dead keys (" then a = ä) cover accents instead. The layout itself lives in

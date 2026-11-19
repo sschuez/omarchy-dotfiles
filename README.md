@@ -27,7 +27,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | Package | Files in `~` | What | Loaded by |
 |---|---|---|---|
 | `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests) | Include line in `~/.bashrc` |
-| `hypr` | `.config/hypr/overrides.lua` | Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) | Include line in `~/.config/hypr/hyprland.lua` |
+| `hypr` | `.config/hypr/overrides.lua` | Apple Studio Display at 2.5x, Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) | Include line in `~/.config/hypr/hyprland.lua` |
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
 | `xcompose` | `.config/xcompose/dead-keys` | Windows-style dead keys: they combine with vowels only (plus ç, ñ), so `I'm`, `"hello"` and `''` type as-is | Include line in `~/.XCompose` |
@@ -94,8 +94,11 @@ the app needs one.
   update migrations skip a symlinked one, so check its release notes for Herdr
   changes). The workspaces widget is a clone, Omarchy's sanctioned way to change
   a built-in widget, so it no longer gets Omarchy's updates either.
-- **No monitor settings.** They're machine-specific; Omarchy writes
-  `~/.config/hypr/monitors.lua` per machine.
+- **No machine monitor settings.** They're machine-specific; Omarchy writes
+  `~/.config/hypr/monitors.lua` per machine. The one exception is the Apple
+  Studio Display's 2.5x scale in `overrides.lua`: it's matched by the display's
+  name, so it belongs to the display, not to a machine. Because overrides load
+  last, it wins over Omarchy's Display panel after a `hyprctl reload`.
 - **Keyboard layout in Omarchy's file, not in Hyprland overrides.** Omarchy
   routes typing through fcitx5, which re-sends keys with its own layout. Both
   have to say US International, and Omarchy's `omarchy setup keyboard` picker
