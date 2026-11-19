@@ -56,16 +56,17 @@ o.bind("SUPER + E", "Window Overview", hl.dsp.global("window-overview:toggle"))
 -- No compositor fade on the overview: it should just be there.
 hl.layer_rule({ match = { namespace = "window-overview" }, no_anim = true, animation = "none" })
 
--- Alt+Tab switches windows the Mac way, through the same plugin: hold Alt, tap
--- Tab to step through the windows, most recently used first, and let go of Alt
--- to jump to the selected one. Shift goes backwards. Replaces Omarchy's
--- Alt+Tab, which only cycles the windows of the current workspace.
--- A release bind on Alt is skipped once another key (Tab) was pressed during
--- the hold, so Alt is watched while a switch is under way instead.
+-- Super+Tab switches windows the Mac way (Cmd+Tab), through the same plugin:
+-- hold Super, tap Tab to step through the windows, most recently used first,
+-- and let go of Super to jump to the selected one. Shift goes backwards.
+-- Replaces Omarchy's Super+Tab workspace cycling (Super+[ / Super+] above
+-- cover that); Alt+Tab is left as Omarchy's own.
+-- A release bind on Super is skipped once another key (Tab) was pressed during
+-- the hold, so Super is watched while a switch is under way instead.
 local switching = false
-local function watch_alt()
-	if hl.is_key_down("Alt_L") or hl.is_key_down("Alt_R") then
-		hl.timer(watch_alt, { timeout = 15, type = "oneshot" })
+local function watch_super()
+	if hl.is_key_down("Super_L") or hl.is_key_down("Super_R") then
+		hl.timer(watch_super, { timeout = 15, type = "oneshot" })
 	else
 		switching = false
 		hl.dispatch(hl.dsp.global("window-overview:switch-commit"))
@@ -76,12 +77,12 @@ local function switch_window(direction)
 		hl.dispatch(hl.dsp.global("window-overview:switch-" .. direction))
 		if not switching then
 			switching = true
-			watch_alt()
+			watch_super()
 		end
 	end
 end
-o.rebind("ALT + TAB", "Switch window", switch_window("next"), { repeating = true })
-o.rebind("ALT + SHIFT + TAB", "Switch window back", switch_window("previous"), { repeating = true })
+o.rebind("SUPER + TAB", "Switch window", switch_window("next"), { repeating = true })
+o.rebind("SUPER + SHIFT + TAB", "Switch window back", switch_window("previous"), { repeating = true })
 
 -- Fixed workspaces: each app always opens on its own workspace, and you're
 -- taken there. Use "<n> silent" instead to open it there without switching.
