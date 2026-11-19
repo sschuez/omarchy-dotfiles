@@ -1,11 +1,16 @@
 -- Ctrl + h/j/k/l moves between Neovim splits and, at the edge, on into the
 -- neighbouring tmux or Herdr pane. Pairs with the Ctrl + h/j/k/l bindings in
 -- ~/.config/tmux/overrides.conf and ~/.config/herdr/config.toml (through
--- herdr-navigate). Replaces LazyVim's own Ctrl + h/j/k/l (window moves inside
--- Neovim only).
+-- the navigate plugin). Replaces LazyVim's own Ctrl + h/j/k/l (window moves
+-- inside Neovim only).
 
 -- In tmux, vim-tmux-navigator does it all. In Herdr, move between splits and,
--- when there's no split that way, ask Herdr to focus the next pane.
+-- when there's no split that way, ask Herdr to focus the next pane: through
+-- the navigate plugin's script in its "edge" mode, so moving on (and leaving
+-- zoom) works the same from Neovim as from a shell. Without the script, plain
+-- Herdr focus.
+local herdr_navigate = vim.fn.expand("~/.config/herdr/navigate-plugin/navigate")
+
 local function navigate(direction, wincmd)
   return function()
     if vim.env.TMUX then
@@ -15,8 +20,12 @@ local function navigate(direction, wincmd)
     local before = vim.api.nvim_get_current_win()
     vim.cmd.wincmd(wincmd)
     if vim.api.nvim_get_current_win() == before and vim.env.HERDR_PANE_ID then
-      local herdr = vim.env.HERDR_BIN_PATH or "herdr"
-      vim.system({ herdr, "pane", "focus", "--pane", vim.env.HERDR_PANE_ID, "--direction", direction:lower() })
+      if vim.fn.executable(herdr_navigate) == 1 then
+        vim.system({ herdr_navigate, direction:lower(), "edge" })
+      else
+        local herdr = vim.env.HERDR_BIN_PATH or "herdr"
+        vim.system({ herdr, "pane", "focus", "--pane", vim.env.HERDR_PANE_ID, "--direction", direction:lower() })
+      end
     end
   end
 end

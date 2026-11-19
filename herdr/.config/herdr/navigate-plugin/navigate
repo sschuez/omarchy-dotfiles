@@ -3,9 +3,11 @@
 # Herdr binds the keys to this plugin's actions (../config.toml): with
 # Neovim in the focused pane it hands the key on, so Neovim moves between its
 # splits; otherwise it focuses the neighbouring Herdr pane. At its last split,
-# Neovim asks Herdr to move on (nvim/.config/nvim/lua/plugins/tmux-navigator.lua).
+# Neovim calls this script again with "edge" to move on
+# (nvim/.config/nvim/lua/plugins/tmux-navigator.lua).
 #
-# Usage: navigate left|down|up|right   (Herdr sets HERDR_PANE_ID to the focused pane)
+# Usage: navigate left|down|up|right [edge]
+#        (Herdr and Neovim both pass the pane in HERDR_PANE_ID)
 
 herdr=${HERDR_BIN_PATH:-herdr}
 # After `herdr update` swaps the binary under a running server, the path the
@@ -21,14 +23,27 @@ down) key=ctrl+j ;;
 up) key=ctrl+k ;;
 right) key=ctrl+l ;;
 *)
-	echo "usage: navigate left|down|up|right" >&2
+	echo "usage: navigate left|down|up|right [edge]" >&2
 	exit 2
 	;;
 esac
 
-# Same programs as is_vim in tmux/.config/tmux/overrides.conf: the vim family and fzf.
-if "$herdr" pane process-info --pane "$pane" | grep -qE '"name":"g?(view|l?n?vim?x?|fzf)(diff)?"'; then
+# Same programs as is_vim in tmux/.config/tmux/overrides.conf: the vim family
+# and fzf. Skipped for "edge": that is Neovim itself asking, and the key would
+# bounce straight back to it.
+if [ "$2" != edge ] &&
+	"$herdr" pane process-info --pane "$pane" | grep -qE '"name":"g?(view|l?n?vim?x?|fzf)(diff)?"'; then
 	exec "$herdr" pane send-keys "$pane" "$key"
 fi
 
-exec "$herdr" pane focus --pane "$pane" --direction "$1"
+# Move, and leave zoom on the way, as tmux's select-pane does. Herdr's own
+# focus keeps the tab zoomed, on the pane it moved to. The reply to focus
+# carries the zoom state, so un-zooming costs a second call only when zoomed.
+# Un-zoom the pane now in focus: un-zooming the one we left would focus it again.
+reply=$("$herdr" pane focus --pane "$pane" --direction "$1")
+case $reply in
+*'"zoomed":true'*)
+	now=$(printf '%s' "$reply" | sed -n 's/.*"focused_pane_id":"\([^"]*\)".*/\1/p')
+	exec "$herdr" pane zoom --off --pane "${now:-$pane}"
+	;;
+esac
