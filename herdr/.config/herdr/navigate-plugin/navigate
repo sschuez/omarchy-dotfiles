@@ -8,6 +8,11 @@
 # Usage: navigate left|down|up|right   (Herdr sets HERDR_PANE_ID to the focused pane)
 
 herdr=${HERDR_BIN_PATH:-herdr}
+# After `herdr update` swaps the binary under a running server, the path the
+# server hands out can point at the deleted file; fall back to the one on PATH.
+# (Borrowed from paulbkim-dev/vim-herdr-navigation, the same idea as a
+# community plugin.)
+[ -x "$herdr" ] || herdr=herdr
 pane=$HERDR_PANE_ID
 
 case $1 in
