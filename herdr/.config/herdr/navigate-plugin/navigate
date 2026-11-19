@@ -1,0 +1,29 @@
+#!/bin/sh
+# Ctrl+h/j/k/l in Herdr, the way vim-tmux-navigator does it in tmux.
+# Herdr binds the keys to this plugin's actions (../config.toml): with
+# Neovim in the focused pane it hands the key on, so Neovim moves between its
+# splits; otherwise it focuses the neighbouring Herdr pane. At its last split,
+# Neovim asks Herdr to move on (nvim/.config/nvim/lua/plugins/tmux-navigator.lua).
+#
+# Usage: navigate left|down|up|right   (Herdr sets HERDR_PANE_ID to the focused pane)
+
+herdr=${HERDR_BIN_PATH:-herdr}
+pane=$HERDR_PANE_ID
+
+case $1 in
+left) key=ctrl+h ;;
+down) key=ctrl+j ;;
+up) key=ctrl+k ;;
+right) key=ctrl+l ;;
+*)
+	echo "usage: navigate left|down|up|right" >&2
+	exit 2
+	;;
+esac
+
+# Same programs as is_vim in tmux/.config/tmux/overrides.conf: the vim family and fzf.
+if "$herdr" pane process-info --pane "$pane" | grep -qE '"name":"g?(view|l?n?vim?x?|fzf)(diff)?"'; then
+	exec "$herdr" pane send-keys "$pane" "$key"
+fi
+
+exec "$herdr" pane focus --pane "$pane" --direction "$1"

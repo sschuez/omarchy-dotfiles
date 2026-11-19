@@ -34,10 +34,11 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | `tmux` | `.config/tmux/overrides.conf` | Vim-style navigation: `Ctrl+h/j/k/l` across panes and Neovim splits, `Alt+Shift+H/L` windows, `prefix h/j/k/l` panes, `prefix X` kill window, `prefix \|` / `prefix -` splits | Include line in `~/.config/tmux/tmux.conf` |
 | `nvim` | `.config/nvim/lazyvim.json` | LazyVim extras (owned outright, see below) | LazyVim |
 | | `.config/nvim/lua/plugins/lsp.lua` | Language servers (Ruby LSP, Herb, HTML, CSS, Emmet, XML), formatting through the language servers, extra syntax parsers | LazyVim, which loads every file in `lua/plugins/` |
-| | `.config/nvim/lua/plugins/tmux-navigator.lua` | Neovim side of the `Ctrl+h/j/k/l` tmux navigation | LazyVim |
+| | `.config/nvim/lua/plugins/tmux-navigator.lua` | Neovim side of the `Ctrl+h/j/k/l` navigation, in tmux and in Herdr | LazyVim |
 | | `.config/nvim/plugin/personal.lua` | Relative line numbers, format on save | Neovim, which runs every file in `plugin/` |
 | `mise` | `.default-gems` | `ruby-lsp`, installed with every Ruby mise installs | mise |
-| `herdr` | `.config/herdr/config.toml` | Herdr keys like tmux: `Ctrl+Alt+h/j/k/l` and `prefix h/j/k/l` focus panes, `prefix \|` / `prefix -` split, `prefix X` close tab, `Alt+Shift+H/L` tabs (owned outright, see below) | Herdr |
+| `herdr` | `.config/herdr/config.toml` | Herdr keys like tmux: `Ctrl+h/j/k/l` across panes and Neovim splits, `Ctrl+Alt+h/j/k/l` and `prefix h/j/k/l` focus panes, `prefix \|` / `prefix -` split, `prefix X` close tab, `Alt+Shift+H/L` tabs (owned outright, see below) | Herdr |
+| | `.config/herdr/navigate-plugin/` | Herdr's half of vim-tmux-navigator: hands `Ctrl+h/j/k/l` on to Neovim (or fzf) when it's in the focused pane, focuses the next pane otherwise. A plugin because Herdr runs those without a login shell (~8 ms a press instead of ~19) | `herdr plugin link ~/.config/herdr/navigate-plugin`, bound in `config.toml` |
 | `bin` | `.local/bin/wt` | Git worktrees with their own ports, Docker project and databases, fully cleaned up on removal (run `wt` for help) | Claude Code's `WorktreeCreate` / `WorktreeRemove` hooks, or by hand |
 | `claude` | `.claude/hooks/block-*.sh` | Claude Code safety hooks: no bare `bin/ci` on `main`/`develop`/`testing` (it signs off and deploys), no destructive database commands | `PreToolUse` hooks merged into `~/.claude/settings.json` by `install-overrides.sh` |
 
