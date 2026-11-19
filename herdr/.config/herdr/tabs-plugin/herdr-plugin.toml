@@ -1,0 +1,40 @@
+# Names Herdr tabs "N name", like tmux's automatic-rename. See ./tabname.
+# Herdr has no event for a command starting or ending in a pane, so the shell
+# hook at the end of ~/.config/bash/aliases calls ./tabname for those.
+# Linked with: herdr plugin link ~/.config/herdr/tabs-plugin
+id = "stephen.tabs"
+name = "Tab names"
+version = "0.1.0"
+min_herdr_version = "0.9.5"
+description = "Tabs named \"N name\" after what runs in them"
+platforms = ["linux", "macos"]
+
+[[startup]]
+command = ["./tabname", "all"]
+
+# Tabs opened, closed or moved: the numbers change.
+[[events]]
+on = "tab.created"
+command = ["./tabname", "renumber"]
+
+[[events]]
+on = "tab.closed"
+command = ["./tabname", "renumber"]
+
+[[events]]
+on = "tab.moved"
+command = ["./tabname", "renumber"]
+
+# Another pane of a split tab took focus, or the agent in a pane started,
+# stopped or moved on: the name changes.
+[[events]]
+on = "pane.focused"
+command = ["./tabname", "pane"]
+
+[[events]]
+on = "pane.agent_detected"
+command = ["./tabname", "pane"]
+
+[[events]]
+on = "pane.agent_status_changed"
+command = ["./tabname", "pane"]

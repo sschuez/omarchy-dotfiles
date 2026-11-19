@@ -69,12 +69,22 @@ dcr() {
 }
 
 # Herdr: tab names follow the running command, like tmux's automatic-rename.
-# This is the shell hook of the herdr-automatic-rename plugin, which
-# omarchy-supplement installs; without the plugin, or outside Herdr, it does
-# nothing. Herdr keeps each installed version in its own folder, so take the
-# newest. Kept last in this file: the hook wants to load after the prompt.
-if [[ -n ${HERDR_PANE_ID:-} ]]; then
-  for _herdr_hook in "$HOME"/.config/herdr/plugins/github-installations/herdr-automatic-rename-*/*/checkout/shell/hook.bash; do :; done
-  [[ -r $_herdr_hook ]] && source "$_herdr_hook"
-  unset _herdr_hook
+# Herdr has no event for a command starting or ending, so the shell tells my
+# tabs plugin (~/.config/herdr/tabs-plugin, linked by omarchy-supplement):
+# once at every prompt, and a moment after a command starts, when the program
+# it launched is really the one in front (so an alias shows as what it runs,
+# and a quick `ls` doesn't flicker through the tab bar). In the background,
+# and only inside Herdr. Kept last in this file, after the prompt is set up:
+# it adds to PROMPT_COMMAND and PS0 without replacing what's there.
+if [[ -n ${HERDR_PANE_ID:-} && -x ~/.config/herdr/tabs-plugin/tabname && ${PROMPT_COMMAND-} != *__herdr_tabname_prompt* ]]; then
+  __herdr_tabname() {
+    ( { [[ -n ${1:-} ]] && sleep "$1"; ~/.config/herdr/tabs-plugin/tabname pane; } >/dev/null 2>&1 </dev/null & )
+  }
+  __herdr_tabname_prompt() {
+    local last=$?
+    __herdr_tabname
+    return $last
+  }
+  PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}__herdr_tabname_prompt"
+  PS0+='$(__herdr_tabname 0.3)'
 fi

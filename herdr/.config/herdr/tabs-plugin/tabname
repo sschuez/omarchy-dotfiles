@@ -1,0 +1,115 @@
+#!/bin/sh
+# Names Herdr tabs "N name", like tmux's automatic-rename: N is the tab's
+# position, name is what runs in the tab's focused pane. An agent's tab gets
+# the task from the agent's terminal title, a program gets its name, and a
+# shell at its prompt gets the folder it is in.
+#
+# A tab is only ever renamed while its label looks like one of ours: a number,
+# or a number, a space and a name. Rename a tab to anything else (prefix r) and
+# it keeps that name, without a number; rename it to a bare number to hand it
+# back.
+#
+# Usage: tabname pane      name the tab that holds $HERDR_PANE_ID
+#        tabname renumber  fix the numbers after tabs opened, closed or moved,
+#                          and name tabs that have none yet
+#        tabname all       name every tab (when Herdr starts)
+#
+# Run by Herdr on the events in herdr-plugin.toml, and by the shell hook in
+# ~/.config/bash/aliases when a command starts or ends, since Herdr has no
+# event for that. Each run is a handful of Herdr calls, with no lock and no
+# state: it reads what is there and renames only what is wrong, so runs that
+# overlap settle on the same answer.
+
+herdr=${HERDR_BIN_PATH:-herdr}
+[ -x "$herdr" ] || herdr=herdr # stale path after `herdr update`, see navigate-plugin
+max=28                         # longest name, in characters
+us=$(printf '\037')            # field separator: not whitespace, so empty fields survive `read`
+
+# Name the tab that holds pane $1, after the pane that has focus in it.
+name_tab_of() {
+	layout=$("$herdr" pane layout --pane "$1" 2>/dev/null |
+		jq -r '.result.layout | [.tab_id, .workspace_id, .focused_pane_id] | join("\u001f")' 2>/dev/null)
+	[ -n "$layout" ] || return 0
+	IFS=$us read -r tab workspace focused <<-EOT
+		$layout
+	EOT
+
+	# An agent: its task, or its own name while the title says nothing more.
+	# Anything else: empty, and the folder for later.
+	pane=$("$herdr" pane get "$focused" 2>/dev/null | jq -r '.result.pane
+		| (.agent // "") as $agent
+		| (.terminal_title_stripped // "") as $title
+		| (if $agent == "" then ""
+		   elif ($title | ascii_downcase) as $t | $t == "" or $t == $agent or $t == $agent + " code" then $agent
+		   else $title end) as $name
+		| [$name, (.foreground_cwd // .cwd // "")] | join("\u001f")' 2>/dev/null)
+	IFS=$us read -r name cwd <<-EOT
+		$pane
+	EOT
+
+	if [ -z "$name" ]; then
+		name=$("$herdr" pane process-info --pane "$focused" 2>/dev/null |
+			jq -r '.result.process_info.foreground_processes[0].name // ""' 2>/dev/null)
+		case $name in
+		"" | bash | zsh | fish | sh | dash | nu)
+			if [ "$cwd" = "$HOME" ]; then name="~"; else name=${cwd##*/}; fi
+			;;
+		esac
+	fi
+
+	# The tab's position, and a rename only if the label is ours and is wrong.
+	"$herdr" tab list --workspace "$workspace" 2>/dev/null |
+		jq -r --arg tab "$tab" --arg name "$name" --argjson max "$max" '
+			.result.tabs | to_entries[] | select(.value.tab_id == $tab)
+			| select(.value.label | test("^[0-9]+( .*)?$"))
+			| (if ($name | length) > $max then ($name[0:$max - 1] | sub("\\s+$"; "")) + "…" else $name end) as $short
+			| ((.key + 1 | tostring) + (if $short == "" then "" else " " + $short end)) as $label
+			| select($label != .value.label) | $label' 2>/dev/null |
+		while IFS= read -r label; do
+			"$herdr" tab rename "$tab" "$label" >/dev/null 2>&1
+		done
+}
+
+# One pane of every tab, as "tab_id pane_id" lines (separated by $us).
+tab_panes() {
+	"$herdr" pane list 2>/dev/null |
+		jq -r '.result.panes | group_by(.tab_id)[] | [.[0].tab_id, .[0].pane_id] | join("\u001f")' 2>/dev/null
+}
+
+case $1 in
+pane)
+	[ -n "$HERDR_PANE_ID" ] && name_tab_of "$HERDR_PANE_ID"
+	;;
+renumber)
+	# Correct each number, keeping the name; list the tabs still without one.
+	unnamed=$("$herdr" workspace list 2>/dev/null | jq -r '.result.workspaces[].workspace_id' 2>/dev/null |
+		while IFS= read -r workspace; do
+			"$herdr" tab list --workspace "$workspace" 2>/dev/null | jq -r '
+				.result.tabs | to_entries[]
+				| select(.value.label | test("^[0-9]+( .*)?$"))
+				| (.key + 1 | tostring) as $n
+				| (.value.label | sub("^[0-9]+"; "")) as $rest
+				| [.value.tab_id, (if $n + $rest != .value.label then $n + $rest else "" end), $rest] | join("\u001f")' 2>/dev/null
+		done | while IFS=$us read -r tab label rest; do
+			[ -n "$label" ] && "$herdr" tab rename "$tab" "$label" >/dev/null 2>&1
+			[ -z "$rest" ] && echo "$tab"
+		done)
+	[ -n "$unnamed" ] || exit 0
+	tab_panes | while IFS=$us read -r tab pane; do
+		case "
+$unnamed
+" in *"
+$tab
+"*) name_tab_of "$pane" ;; esac
+	done
+	;;
+all)
+	tab_panes | while IFS=$us read -r tab pane; do
+		name_tab_of "$pane"
+	done
+	;;
+*)
+	echo "usage: tabname pane|renumber|all" >&2
+	exit 2
+	;;
+esac
