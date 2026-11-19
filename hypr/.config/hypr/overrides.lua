@@ -19,11 +19,11 @@ hl.config({ input = { kb_options = "ctrl:nocaps" } })
 -- Super+[ / Super+] step through all ten workspaces, empty ones included,
 -- wrapping 10 -> 1 and 1 -> 10. (Omarchy's Super+Tab skips empty ones.)
 local function cycle_workspace(step)
-  return function()
-    local workspace = hl.get_active_workspace()
-    local current = (workspace and not workspace.special and workspace.id > 0) and workspace.id or 1
-    hl.dispatch(hl.dsp.focus({ workspace = tostring((current - 1 + step) % 10 + 1) }))
-  end
+	return function()
+		local workspace = hl.get_active_workspace()
+		local current = (workspace and not workspace.special and workspace.id > 0) and workspace.id or 1
+		hl.dispatch(hl.dsp.focus({ workspace = tostring((current - 1 + step) % 10 + 1) }))
+	end
 end
 o.bind("SUPER + BRACKETLEFT", "Previous workspace", cycle_workspace(-1))
 o.bind("SUPER + BRACKETRIGHT", "Next workspace", cycle_workspace(1))
@@ -34,16 +34,16 @@ o.bind("SUPER + BRACKETRIGHT", "Next workspace", cycle_workspace(1))
 -- bindings, so the synthetic key doesn't get stuck repeating.
 local browsers = { chromium = true, ["google-chrome"] = true, ["brave-browser"] = true, firefox = true }
 local function browser_shortcut(mods, key)
-  return function()
-    local window = hl.get_active_window()
-    if not (window and browsers[window.class]) then
-      return
-    end
-    hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "down" }))
-    hl.timer(function()
-      hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "up" }))
-    end, { timeout = 50, type = "oneshot" })
-  end
+	return function()
+		local window = hl.get_active_window()
+		if not (window and browsers[window.class]) then
+			return
+		end
+		hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "down" }))
+		hl.timer(function()
+			hl.dispatch(hl.dsp.send_key_state({ mods = mods, key = key, state = "up" }))
+		end, { timeout = 50, type = "oneshot" })
+	end
 end
 o.bind("ALT + BRACKETLEFT", "Previous browser tab", browser_shortcut("CTRL", "Page_Up"), { non_consuming = true })
 o.bind("ALT + BRACKETRIGHT", "Next browser tab", browser_shortcut("CTRL", "Page_Down"), { non_consuming = true })
@@ -64,21 +64,21 @@ hl.layer_rule({ match = { namespace = "window-overview" }, no_anim = true, anima
 -- the hold, so Alt is watched while a switch is under way instead.
 local switching = false
 local function watch_alt()
-  if hl.is_key_down("Alt_L") or hl.is_key_down("Alt_R") then
-    hl.timer(watch_alt, { timeout = 15, type = "oneshot" })
-  else
-    switching = false
-    hl.dispatch(hl.dsp.global("window-overview:switch-commit"))
-  end
+	if hl.is_key_down("Alt_L") or hl.is_key_down("Alt_R") then
+		hl.timer(watch_alt, { timeout = 15, type = "oneshot" })
+	else
+		switching = false
+		hl.dispatch(hl.dsp.global("window-overview:switch-commit"))
+	end
 end
 local function switch_window(direction)
-  return function()
-    hl.dispatch(hl.dsp.global("window-overview:switch-" .. direction))
-    if not switching then
-      switching = true
-      watch_alt()
-    end
-  end
+	return function()
+		hl.dispatch(hl.dsp.global("window-overview:switch-" .. direction))
+		if not switching then
+			switching = true
+			watch_alt()
+		end
+	end
 end
 o.rebind("ALT + TAB", "Switch window", switch_window("next"), { repeating = true })
 o.rebind("ALT + SHIFT + TAB", "Switch window back", switch_window("previous"), { repeating = true })
