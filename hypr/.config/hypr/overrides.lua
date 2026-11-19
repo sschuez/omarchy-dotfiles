@@ -83,6 +83,39 @@ local function switch_window(direction)
 end
 o.rebind("SUPER + TAB", "Switch window", switch_window("next"), { repeating = true })
 o.rebind("SUPER + SHIFT + TAB", "Switch window back", switch_window("previous"), { repeating = true })
+-- While switching, a tap of Ctrl (Super still held) steps back as well. Only
+-- while switching, and non-consuming, so Super+Ctrl+<key> chords still work.
+local function ctrl_back()
+	if switching then
+		hl.dispatch(hl.dsp.global("window-overview:switch-previous"))
+	end
+end
+o.bind("SUPER + Control_L", "Switch window back (while switching)", ctrl_back, { non_consuming = true })
+o.bind("SUPER + Control_R", "Switch window back (while switching)", ctrl_back, { non_consuming = true })
+-- Omarchy's Super+Ctrl+Tab (former workspace) stays, except mid-switch, where
+-- the Ctrl press above already stepped back.
+o.rebind("SUPER + CTRL + TAB", "Former workspace", function()
+	if not switching then
+		hl.dispatch(hl.dsp.focus({ workspace = "previous_per_monitor" }))
+	end
+end)
+
+-- Omarchy binds Super+arrows to move focus, so the arrows never reach the
+-- switcher. While a switch is under way they step through it instead;
+-- otherwise they keep Omarchy's focus behaviour.
+local function arrow(direction, step)
+	return function()
+		if switching then
+			hl.dispatch(hl.dsp.global("window-overview:switch-" .. step))
+		else
+			hl.dispatch(hl.dsp.focus({ direction = direction }))
+		end
+	end
+end
+o.rebind("SUPER + LEFT", "Focus on left window", arrow("l", "previous"), { repeating = true })
+o.rebind("SUPER + RIGHT", "Focus on right window", arrow("r", "next"), { repeating = true })
+o.rebind("SUPER + UP", "Focus on above window", arrow("u", "up"), { repeating = true })
+o.rebind("SUPER + DOWN", "Focus on below window", arrow("d", "down"), { repeating = true })
 
 -- Fixed workspaces: each app always opens on its own workspace, and you're
 -- taken there. Use "<n> silent" instead to open it there without switching.
