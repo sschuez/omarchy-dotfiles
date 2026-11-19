@@ -111,5 +111,6 @@ the app needs one.
   conventions: ports from `${X_PORT:-default}` in the compose file (default +
   slot), `COMPOSE_PROJECT_NAME=<repo>_<name>`, Postgres names when
   `config/database.yml` reads `POSTGRES_DB` / `POSTGRES_TEST_DB`. Teardown only
-  touches names it generated for that worktree. Worktrees live in
-  `<repo>-worktrees/<name>`, outside any dot-folder.
+  touches names it generated for that worktree. Worktrees live inside the
+  repo, in `<repo>/.claude/worktrees/<name>`, where Claude Code puts its own.
+  A repo that does not gitignore that folder gets it in `.git/info/exclude`.
