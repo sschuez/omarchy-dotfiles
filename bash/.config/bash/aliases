@@ -12,6 +12,14 @@ alias lg='lazygit'
 alias lzg='lazygit'
 alias lzd='lazydocker'
 
+# Agents: Omarchy's c/cx are the other way around, so swap them here.
+# Each alias keeps its tool's auto-approval behaviour.
+alias c='printf "\033[2J\033[3J\033[H" && claude --permission-mode auto'
+alias cx='opencode --auto'
+
+# Start Claude in a named worktree, e.g. cwt my-feature
+cwt() { claude --worktree "$@"; }
+
 # Docker Compose (Rails apps; the main service is called "app")
 alias dcb='docker compose build'
 alias dcbc='docker compose build --no-cache'
