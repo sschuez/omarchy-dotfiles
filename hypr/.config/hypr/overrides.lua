@@ -22,13 +22,24 @@ hl.monitor({ output = "desc:Apple Computer Inc StudioDisplay", mode = "preferred
 -- omarchy-supplement makes fcitx5 match.
 hl.config({ input = { kb_options = "ctrl:nocaps" } })
 
--- Super+[ / Super+] step through all ten workspaces, empty ones included,
--- wrapping 10 -> 1 and 1 -> 10. (Omarchy's Super+Tab skips empty ones.)
+-- Workspaces are per monitor in Omarchy (default/hypr/monitor-workspaces.lua):
+-- each screen has its own slots 1-10, which Hyprland numbers 1-10 on the laptop
+-- panel, 11-20 on the next monitor, and so on. Everything below talks in slots,
+-- through o.workspaces, so it works the same on whichever screen has focus.
+local function current_slot()
+	local workspace = hl.get_active_workspace()
+	if not (workspace and not workspace.special and workspace.id > 0) then
+		return 1
+	end
+	return (workspace.id - 1) % o.workspaces.slots + 1
+end
+
+-- Super+[ / Super+] step through the focused screen's ten slots, empty ones
+-- included, wrapping 10 -> 1 and 1 -> 10.
 local function cycle_workspace(step)
 	return function()
-		local workspace = hl.get_active_workspace()
-		local current = (workspace and not workspace.special and workspace.id > 0) and workspace.id or 1
-		hl.dispatch(hl.dsp.focus({ workspace = tostring((current - 1 + step) % 10 + 1) }))
+		local slots = o.workspaces.slots
+		o.workspaces.focus((current_slot() - 1 + step) % slots + 1)()
 	end
 end
 o.bind("SUPER + BRACKETLEFT", "Previous workspace", cycle_workspace(-1))
@@ -123,15 +134,51 @@ o.rebind("SUPER + RIGHT", "Focus on right window", arrow("r", "next"), { repeati
 o.rebind("SUPER + UP", "Focus on above window", arrow("u", "up"), { repeating = true })
 o.rebind("SUPER + DOWN", "Focus on below window", arrow("d", "down"), { repeating = true })
 
--- Fixed workspaces: each app always opens on its own workspace, and you're
--- taken there. Use "<n> silent" instead to open it there without switching.
+-- Fixed workspaces: each app always opens in its own slot on the focused
+-- screen, and you're taken there. Not window rules: a rule names a global
+-- workspace number, which belongs to one particular screen.
+-- Lua patterns, matched against the whole class (escape - and . with %).
 -- Find an app's class with: hyprctl clients
-o.window("chrome-app\\.hey\\.com__.*", { workspace = "1" }) -- HEY
-o.window("chrome-chalet\\.do__.*", { workspace = "2" }) -- Chalet
-o.window("(chromium|google-chrome|brave-browser|firefox)", { workspace = "3" }) -- Browser
--- Terminals, including tmux and Herdr (they run inside one). Omarchy's own
--- terminal windows (org.omarchy.*, TUI.*) don't match and stay where they open.
-o.window("(Alacritty|kitty|com\\.mitchellh\\.ghostty|foot|org\\.codeberg\\.dnkl\\.foot)", { workspace = "4" })
-o.window("(chrome-web\\.whatsapp\\.com__.*|chrome-(app\\.)?appsignal\\.com__.*|signal|Signal)", { workspace = "5" }) -- WhatsApp, AppSignal, Signal
-o.window("com\\.anthropic\\.Claude", { workspace = "6" }) -- Claude Desktop
-o.window("org\\.gnome\\.Nautilus", { workspace = "7" }) -- Files
+local app_slots = {
+	{ 1, { "chrome%-app%.hey%.com__.*" } }, -- HEY
+	{ 2, { "chrome%-chalet%.do__.*" } }, -- Chalet
+	{ 3, { "chromium", "google%-chrome", "brave%-browser", "firefox" } }, -- Browser
+	-- Terminals, including tmux and Herdr (they run inside one). Omarchy's own
+	-- terminal windows (org.omarchy.*, TUI.*) don't match and stay where they open.
+	{ 4, { "Alacritty", "kitty", "com%.mitchellh%.ghostty", "foot", "org%.codeberg%.dnkl%.foot" } },
+	{ 5, { "chrome%-web%.whatsapp%.com__.*", "chrome%-appsignal%.com__.*", "chrome%-app%.appsignal%.com__.*", "[sS]ignal" } }, -- WhatsApp, AppSignal, Signal
+	{ 6, { "com%.anthropic%.Claude" } }, -- Claude Desktop
+	{ 7, { "org%.gnome%.Nautilus" } }, -- Files
+}
+
+local function slot_for(class)
+	for _, entry in ipairs(app_slots) do
+		for _, pattern in ipairs(entry[2]) do
+			if class:match("^" .. pattern .. "$") then
+				return entry[1]
+			end
+		end
+	end
+end
+
+hl.on("window.open", function(window)
+	local slot = window.class and slot_for(window.class)
+	local monitor = hl.get_active_monitor()
+	if not (slot and monitor) then
+		return
+	end
+	local id = o.workspaces.workspace_id(monitor, slot)
+	if window.workspace and window.workspace.id == id then
+		return
+	end
+	hl.dispatch(hl.dsp.window.move({ workspace = tostring(id), follow = true, window = "address:" .. window.address }))
+end)
+
+-- Letter keys for the two busiest slots: Super+U the browser (3), Super+I the
+-- terminals (4), with Shift to move the focused window there. Super+I and
+-- Super+Shift+I were Omarchy's input language switch, which does nothing with
+-- one input method (US International, see keyboard-layouts).
+o.bind("SUPER + U", "Switch to workspace 3 (browser)", o.workspaces.focus(3))
+o.bind("SUPER + SHIFT + U", "Move window to workspace 3 (browser)", o.workspaces.move_window(3))
+o.rebind("SUPER + I", "Switch to workspace 4 (terminals)", o.workspaces.focus(4))
+o.rebind("SUPER + SHIFT + I", "Move window to workspace 4 (terminals)", o.workspaces.move_window(4))
