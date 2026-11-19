@@ -67,3 +67,14 @@ dcr() {
   docker compose stop chrome-server >/dev/null 2>&1   # skipped on Ctrl-C; dcs/dcd clean up
   return $status
 }
+
+# Herdr: tab names follow the running command, like tmux's automatic-rename.
+# This is the shell hook of the herdr-automatic-rename plugin, which
+# omarchy-supplement installs; without the plugin, or outside Herdr, it does
+# nothing. Herdr keeps each installed version in its own folder, so take the
+# newest. Kept last in this file: the hook wants to load after the prompt.
+if [[ -n ${HERDR_PANE_ID:-} ]]; then
+  for _herdr_hook in "$HOME"/.config/herdr/plugins/github-installations/herdr-automatic-rename-*/*/checkout/shell/hook.bash; do :; done
+  [[ -r $_herdr_hook ]] && source "$_herdr_hook"
+  unset _herdr_hook
+fi

@@ -26,7 +26,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 
 | Package | Files in `~` | What | Loaded by |
 |---|---|---|---|
-| `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests) | Include line in `~/.bashrc` |
+| `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests). Last, the shell hook of Herdr's tab-naming plugin (does nothing outside Herdr or without the plugin) | Include line in `~/.bashrc` |
 | `hypr` | `.config/hypr/overrides.lua` | Apple Studio Display at 2.5x, Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Super+U` / `Super+I` browser/terminal workspace (Shift moves the window there), `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), `Super+B` for the Brain.fm panel, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) on whichever screen has focus | Include line in `~/.config/hypr/hyprland.lua` |
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
@@ -39,6 +39,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | `mise` | `.default-gems` | `ruby-lsp`, installed with every Ruby mise installs | mise |
 | `herdr` | `.config/herdr/config.toml` | Herdr keys like tmux: `Ctrl+h/j/k/l` across panes and Neovim splits, `Ctrl+Alt+h/j/k/l` and `prefix h/j/k/l` focus panes, `prefix \|` / `prefix -` split, `prefix Shift+H/J/K/L` swap panes, `prefix X` close tab, `prefix D` close workspace, `Alt+Shift+H/L` tabs, `Alt+Shift+Left/Right` move a tab; sidebar in the style of Omarchy's tmux (active in bold accent blue, no filled rows) (owned outright, see below) | Herdr |
 | | `.config/herdr/navigate-plugin/` | Herdr's half of vim-tmux-navigator: hands `Ctrl+h/j/k/l` on to Neovim (or fzf) when it's in the focused pane, focuses the next pane otherwise. A plugin because Herdr runs those without a login shell (~8 ms a press instead of ~19) | `herdr plugin link ~/.config/herdr/navigate-plugin`, bound in `config.toml` |
+| | `.config/herdr-automatic-rename/config.sh` | Settings for the community plugin [herdr-automatic-rename](https://github.com/qu8n/herdr-automatic-rename), which names tabs like tmux's automatic-rename (`[1] nvim`, or the task an agent is on): tabs numbered, workspaces not | The plugin, which omarchy-supplement's `install-overrides.sh` installs at a pinned version |
 | `bin` | `.local/bin/wt` | Git worktrees with their own ports, Docker project and databases, fully cleaned up on removal (run `wt` for help) | Claude Code's `WorktreeCreate` / `WorktreeRemove` hooks, or by hand |
 | `claude` | `.claude/hooks/block-*.sh` | Claude Code safety hooks: no bare `bin/ci` on `main`/`develop`/`testing` (it signs off and deploys), no destructive database commands | `PreToolUse` hooks merged into `~/.claude/settings.json` by `install-overrides.sh` |
 
