@@ -134,6 +134,12 @@ o.rebind("SUPER + RIGHT", "Focus on right window", arrow("r", "next"), { repeati
 o.rebind("SUPER + UP", "Focus on above window", arrow("u", "up"), { repeating = true })
 o.rebind("SUPER + DOWN", "Focus on below window", arrow("d", "down"), { repeating = true })
 
+-- Brain.fm in the bar, my player for it (installed by omarchy-supplement's
+-- install-brainfm.sh): Super+B opens its panel, and its terminal player
+-- (`brainfm`) opens as a floating window like Omarchy's own.
+o.bind("SUPER + B", "Brain.fm", { panel = "stephen.brainfm" })
+o.window("org.omarchy.brainfm", { tag = "+floating-window" })
+
 -- Fixed workspaces: each app always opens in its own slot on the focused
 -- screen, and you're taken there. Not window rules: a rule names a global
 -- workspace number, which belongs to one particular screen.

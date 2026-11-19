@@ -27,7 +27,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | Package | Files in `~` | What | Loaded by |
 |---|---|---|---|
 | `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests) | Include line in `~/.bashrc` |
-| `hypr` | `.config/hypr/overrides.lua` | Apple Studio Display at 2.5x, Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Super+U` / `Super+I` browser/terminal workspace (Shift moves the window there), `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) on whichever screen has focus | Include line in `~/.config/hypr/hyprland.lua` |
+| `hypr` | `.config/hypr/overrides.lua` | Apple Studio Display at 2.5x, Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Super+U` / `Super+I` browser/terminal workspace (Shift moves the window there), `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), `Super+B` for the Brain.fm panel, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) on whichever screen has focus | Include line in `~/.config/hypr/hyprland.lua` |
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
 | `xcompose` | `.config/xcompose/dead-keys` | Windows-style dead keys: they combine with vowels only (plus ç, ñ), so `I'm`, `"hello"` and `''` type as-is | Include line in `~/.XCompose` |
@@ -73,6 +73,15 @@ omarchy-supplement's `install-overrides.sh` installs it with
 it to `~/Code/omarchy-window-overview`, link
 `~/.config/omarchy/plugins/io.github.sschuez.window-overview` to that folder,
 and run `omarchy restart shell` after each change.
+
+## Brain.fm
+
+`Super+B` opens Brain.fm in the bar: my player for it, kept in a repo of its
+own (private). Only its key and the window rule for its terminal player are
+here, in `hypr/.config/hypr/overrides.lua`. omarchy-supplement's
+`install-brainfm.sh` clones it to `~/Code/brainfm-tui` and runs its installer
+with `--no-keybind`, so nothing is added to Omarchy's `bindings.lua`. To
+update it, pull there and run `./install.sh --no-keybind`.
 
 ## Adding a package
 
