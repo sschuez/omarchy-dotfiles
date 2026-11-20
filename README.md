@@ -27,7 +27,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | Package | Files in `~` | What | Loaded by |
 |---|---|---|---|
 | `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests). Last, the shell hook of my Herdr tabs plugin: it renames the tab when a command starts or ends (does nothing outside Herdr) | Include line in `~/.bashrc` |
-| `hypr` | `.config/hypr/overrides.lua` | Apple Studio Display at 2.5x, Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Super+U` / `Super+I` browser/terminal workspace (Shift moves the window there), `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), `Super+B` for the Brain.fm panel, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) on whichever screen has focus | Include line in `~/.config/hypr/hyprland.lua` |
+| `hypr` | `.config/hypr/overrides.lua` | Apple Studio Display at 2.5x, Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Super+U` / `Super+I` browser/terminal workspace (Shift moves the window there), `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), `Super+B` for the Brain.fm panel, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) on whichever screen has focus, workspaces that keep their number when a screen is unplugged or the lid closes | Include line in `~/.config/hypr/hyprland.lua` |
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
 | `xcompose` | `.config/xcompose/dead-keys` | Windows-style dead keys: they combine with vowels only (plus ç, ñ), so `I'm`, `"hello"` and `''` type as-is | Include line in `~/.XCompose` |
@@ -117,6 +117,14 @@ the app needs one.
   `o.workspaces`), not window rules: a rule's `workspace = "3"` always means the
   laptop panel's 3. `Super+[` / `]` and `Super+U` / `I` use slots too.
   `Super+I` replaces Omarchy's input language switch, unused with one input method.
+- **Slots survive a screen change.** When a screen goes away, Omarchy queues its
+  workspaces after the remaining screen's own and sends them back when it
+  returns. A screen that has just woken up shows an empty 1, so everything
+  landed one slot too far. `overrides.lua` wraps `o.workspaces.reconcile` to
+  renumber them into the same slots first (the monitor's 3 becomes the laptop's
+  3), merging a slot both screens use. The price: they belong to the new screen
+  now, so with both screens on they don't go back by themselves. If an Omarchy
+  update changes `reconcile`, this is the place to look.
 - **Keyboard layout in Omarchy's file, not in Hyprland overrides.** Omarchy
   routes typing through fcitx5, which re-sends keys with its own layout. Both
   have to say US International, and Omarchy's `omarchy setup keyboard` picker

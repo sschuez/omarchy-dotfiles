@@ -152,7 +152,15 @@ local app_slots = {
 	-- Terminals, including tmux and Herdr (they run inside one). Omarchy's own
 	-- terminal windows (org.omarchy.*, TUI.*) don't match and stay where they open.
 	{ 4, { "Alacritty", "kitty", "com%.mitchellh%.ghostty", "foot", "org%.codeberg%.dnkl%.foot" } },
-	{ 5, { "chrome%-web%.whatsapp%.com__.*", "chrome%-appsignal%.com__.*", "chrome%-app%.appsignal%.com__.*", "[sS]ignal" } }, -- WhatsApp, AppSignal, Signal
+	{
+		5,
+		{
+			"chrome%-web%.whatsapp%.com__.*",
+			"chrome%-appsignal%.com__.*",
+			"chrome%-app%.appsignal%.com__.*",
+			"[sS]ignal",
+		},
+	}, -- WhatsApp, AppSignal, Signal
 	{ 6, { "com%.anthropic%.Claude" } }, -- Claude Desktop
 	{ 7, { "org%.gnome%.Nautilus" } }, -- Files
 }
@@ -179,6 +187,52 @@ hl.on("window.open", function(window)
 	end
 	hl.dispatch(hl.dsp.window.move({ workspace = tostring(id), follow = true, window = "address:" .. window.address }))
 end)
+
+-- Slots survive a screen going away: the monitor's 3 becomes the laptop's 3
+-- when the cable is pulled, and the laptop's 3 the monitor's when the lid
+-- closes. Omarchy alone queues such workspaces after the remaining screen's
+-- own (monitor-workspaces.lua, as Niri does), and a screen that has just woken
+-- up shows an empty 1, so everything landed one slot too far.
+-- This runs right before Omarchy reconciles (on every monitor change), which
+-- then finds nothing left to queue. A workspace is renumbered, layout intact;
+-- where the slot exists already, its windows join the ones there.
+local reconcile = o.workspaces.reconcile
+o.workspaces.reconcile = function(added, gone)
+	local slots = o.workspaces.slots
+	local block_of = {} -- screen name -> its block of ten
+	local plugged = {} -- the blocks whose screen is here
+	for _, monitor in ipairs(hl.get_monitors()) do
+		if not monitor.is_mirror and monitor.name ~= gone then
+			local block = (o.workspaces.workspace_id(monitor, 1) - 1) // slots
+			block_of[monitor.name] = block
+			plugged[block] = true
+		end
+	end
+
+	local focused = hl.get_active_window()
+	local moved = false
+	for _, workspace in ipairs(hl.get_workspaces()) do
+		local block = workspace.monitor and block_of[workspace.monitor.name]
+		local numbered = not workspace.special and workspace.id > 0
+		if block and numbered and (workspace.windows or 0) > 0 and not plugged[(workspace.id - 1) // slots] then
+			local id = block * slots + (workspace.id - 1) % slots + 1
+			if hl.get_workspace(id) then
+				for _, window in ipairs(hl.get_workspace_windows(workspace.id)) do
+					hl.dispatch(hl.dsp.window.move({ workspace = tostring(id), follow = false, window = "address:" .. window.address }))
+				end
+			else
+				hl.dispatch(hl.dsp.workspace.change_id({ workspace = tostring(workspace.id), id = id }))
+			end
+			moved = true
+		end
+	end
+	-- Stay with the window that had focus, as Omarchy does after reconciling.
+	if moved and focused and hl.get_window("address:" .. focused.address) then
+		hl.dispatch(hl.dsp.focus({ window = "address:" .. focused.address }))
+	end
+
+	return reconcile(added, gone)
+end
 
 -- Letter keys for the two busiest slots: Super+U the browser (3), Super+I the
 -- terminals (4), with Shift to move the focused window there. Super+I and
