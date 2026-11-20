@@ -1,0 +1,51 @@
+# Google Drive as the folder ~/GoogleDrive, mounted by rclone at login.
+# Inside are "My Drive" and one folder per shared drive.
+# Enabled by install-google-drive.sh in omarchy-supplement, which also sets up
+# the two rclone remotes: "gdrive" (the Google sign-in) and "gdrive-all" (My
+# Drive and the shared drives together), which is the one mounted here.
+#
+# After a change here:
+#   systemctl --user daemon-reload && systemctl --user restart rclone-gdrive
+# Status and logs:
+#   systemctl --user status rclone-gdrive
+#   journalctl --user -u rclone-gdrive -f
+
+[Unit]
+Description=Google Drive at ~/GoogleDrive (rclone)
+# No After=network-online.target: a user session has no such target. Without a
+# network the mount fails and is tried again every 30 seconds, for as long as
+# it takes (no start limit).
+StartLimitIntervalSec=0
+
+[Service]
+# notify: started only once the folder is really mounted
+Type=notify
+# A killed rclone leaves a dead mount behind ("Transport endpoint is not
+# connected"), on which every restart would fail. Clear it first; the leading
+# "-" and -q keep this silent when there is nothing to clear.
+ExecStartPre=-/usr/bin/fusermount3 -uzq %h/GoogleDrive
+ExecStartPre=/usr/bin/mkdir -p %h/GoogleDrive
+# full:           files are fetched when opened and can be edited in place
+# max-size, age:  what was opened stays on disk, up to 10 GB and for 30 days
+#                 (rclone's default drops a file an hour after its last use)
+# poll-interval:  changes made elsewhere show up within 30 seconds
+# export-formats: Google Docs, Sheets and Slides appear as links that open in
+#                 the browser. As .docx and so on they show up with a size of
+#                 0 in a mount and often can't be opened.
+ExecStart=/usr/bin/rclone mount gdrive-all: %h/GoogleDrive \
+  --vfs-cache-mode full \
+  --vfs-cache-max-size 10G \
+  --vfs-cache-max-age 720h \
+  --dir-cache-time 1h \
+  --poll-interval 30s \
+  --drive-export-formats link.html
+# -z: unmount even while a program still has the folder open. Without it the
+# stop fails and leaves a dead mount. rclone then ends on systemd's SIGTERM
+# with exit status 143, which is a clean stop, not a failure.
+ExecStop=/usr/bin/fusermount3 -uz %h/GoogleDrive
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

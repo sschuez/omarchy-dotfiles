@@ -44,6 +44,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | `claude` | `.claude/hooks/block-*.sh` | Claude Code safety hooks: no bare `bin/ci` on `main`/`develop`/`testing` (it signs off and deploys), no destructive database commands | `PreToolUse` hooks merged into `~/.claude/settings.json` by `install-overrides.sh` |
 | `wifi` | `.local/bin/wifi-sync` | The same Wi-Fi networks and passwords on this machine (NetworkManager) and in 1Password (vault `Wi-Fi`, personal account): saves this machine's networks there, adds the ones it doesn't know from there (run `wifi-sync help`) | The service below, or by hand; on a new machine, `install-wifi.sh` in omarchy-supplement |
 | | `.config/systemd/user/wifi-sync.service` | Runs `wifi-sync watch`: a sync when this machine joins a network it hasn't synced before, with a notification saying what was saved or added | systemd (user service), enabled by `install-wifi.sh` in omarchy-supplement |
+| `rclone` | `.config/systemd/user/rclone-gdrive.service` | Google Drive as the folder `~/GoogleDrive`, with `My Drive` and one folder per shared drive inside: mounted by rclone at login, files fetched when they're opened, the last 10 GB opened kept on disk for 30 days, Google Docs as links that open in the browser | systemd (user service), enabled by `install-google-drive.sh` in omarchy-supplement, which also does the Google sign-in |
 
 ## Editing and applying changes
 
@@ -59,6 +60,7 @@ here.
 | Keyboard layout | `hyprctl reload`, then `~/Code/omarchy-supplement/install-keyboard.sh` |
 | XCompose | Edit the rules in `xcompose/.config/xcompose/generate-dead-keys`, run it, then `omarchy restart xcompose` |
 | tmux | `prefix q` |
+| Google Drive mount | `systemctl --user daemon-reload && systemctl --user restart rclone-gdrive` |
 | `wifi-sync` | `systemctl --user daemon-reload && systemctl --user restart wifi-sync` (the service keeps running the script it started with) |
 | Neovim | Restart Neovim. Toggle extras with `:LazyExtras`; the change lands in `lazyvim.json` here. |
 
@@ -156,3 +158,11 @@ the app needs one.
   arrives with the next new network here, or with `wifi-sync` by hand. It never
   overwrites or deletes: a password changed on one side is reported as a
   difference to settle by hand.
+- **Google Drive is mounted, not synced.** rclone fetches a file when it's
+  opened, so the whole Drive is there without taking up disk space, and only
+  what was opened lately works offline. Google Docs, Sheets and Slides are
+  links that open in the browser: exported to .docx they have a size of 0 in a
+  mount and often can't be opened. Only the unit is here. The Google sign-in
+  lives in `~/.config/rclone/rclone.conf` and my Google API client in
+  1Password (see omarchy-supplement). `systemctl --user disable` removes the
+  unit's Stow link along with its own; restow the package to get it back.
