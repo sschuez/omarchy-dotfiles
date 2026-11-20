@@ -42,6 +42,8 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | | `.config/herdr/tabs-plugin/` | Tab names like tmux's automatic-rename: `2 nvim`, the folder for a shell at its prompt, the task for an agent. About 110 lines, 15–25 ms a run. A tab renamed by hand keeps its name; rename it to a bare number to hand it back | `herdr plugin link ~/.config/herdr/tabs-plugin` (Herdr's events), and the shell hook in `bash/.config/bash/aliases` (commands starting and ending) |
 | `bin` | `.local/bin/wt` | Git worktrees with their own ports, Docker project and databases, fully cleaned up on removal (run `wt` for help) | Claude Code's `WorktreeCreate` / `WorktreeRemove` hooks, or by hand |
 | `claude` | `.claude/hooks/block-*.sh` | Claude Code safety hooks: no bare `bin/ci` on `main`/`develop`/`testing` (it signs off and deploys), no destructive database commands | `PreToolUse` hooks merged into `~/.claude/settings.json` by `install-overrides.sh` |
+| `wifi` | `.local/bin/wifi-sync` | The same Wi-Fi networks and passwords on this machine (NetworkManager) and in 1Password (vault `Wi-Fi`, personal account): saves this machine's networks there, adds the ones it doesn't know from there (run `wifi-sync help`) | The service below, or by hand; on a new machine, `install-wifi.sh` in omarchy-supplement |
+| | `.config/systemd/user/wifi-sync.service` | Runs `wifi-sync watch`: a sync when this machine joins a network it hasn't synced before, with a notification saying what was saved or added | systemd (user service), enabled by `install-wifi.sh` in omarchy-supplement |
 
 ## Editing and applying changes
 
@@ -57,6 +59,7 @@ here.
 | Keyboard layout | `hyprctl reload`, then `~/Code/omarchy-supplement/install-keyboard.sh` |
 | XCompose | Edit the rules in `xcompose/.config/xcompose/generate-dead-keys`, run it, then `omarchy restart xcompose` |
 | tmux | `prefix q` |
+| `wifi-sync` | `systemctl --user daemon-reload && systemctl --user restart wifi-sync` (the service keeps running the script it started with) |
 | Neovim | Restart Neovim. Toggle extras with `:LazyExtras`; the change lands in `lazyvim.json` here. |
 
 ## Window Overview
@@ -143,3 +146,13 @@ the app needs one.
   touches names it generated for that worktree. Worktrees live inside the
   repo, in `<repo>/.claude/worktrees/<name>`, where Claude Code puts its own.
   A repo that does not gitignore that folder gets it in `.git/info/exclude`.
+- **Wi-Fi passwords in 1Password, not here.** Both repos are public. `wifi-sync`
+  keeps each network as a Wireless Router item, 1Password's own type for it, in
+  a vault of its own, and copies between that and NetworkManager, which is where
+  Omarchy's network panel saves them. 1Password never talks to the system's
+  Wi-Fi itself. The service syncs when a new network is joined, not on a timer:
+  1Password may ask for approval, and that should come when I have just typed a
+  Wi-Fi password, not out of nowhere. So a network added on another machine
+  arrives with the next new network here, or with `wifi-sync` by hand. It never
+  overwrites or deletes: a password changed on one side is reported as a
+  difference to settle by hand.

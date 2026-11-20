@@ -1,0 +1,267 @@
+#!/usr/bin/env bash
+# wifi-sync: the same Wi-Fi networks and passwords on this machine and in
+# 1Password, so a new machine knows them all after one command.
+#
+#   wifi-sync        both ways: save this machine's networks to 1Password and
+#                    add the ones from 1Password this machine doesn't know
+#   wifi-sync push   only save this machine's networks to 1Password
+#   wifi-sync pull   only add 1Password's networks to this machine
+#   wifi-sync -n ... say what would happen, change nothing
+#   wifi-sync watch  stay running and sync whenever this machine joins a
+#                    network it hasn't synced before (wifi-sync.service)
+#
+# On this machine the networks are NetworkManager's, the ones Omarchy's network
+# panel shows. In 1Password each is a "Wireless Router" item in the vault
+# "Wi-Fi" of my personal account: the network's name in "network name" (or, if
+# that is empty, the title), the password in "wireless network password".
+# WIFI_SYNC_ACCOUNT and WIFI_SYNC_VAULT choose another account or vault.
+#
+# Only networks with a password (WPA2/WPA3 Personal). Open and enterprise
+# networks are left alone. Nothing is ever overwritten or deleted: a network
+# with different passwords on the two sides is reported and stays as it is.
+# Needs the 1Password app signed in, with Settings > Developer > "Integrate
+# with 1Password CLI" turned on.
+#
+# `watch` asks 1Password only when the network just joined is a new one, not
+# on a timer: 1Password may ask for approval, and that should come when I
+# have just typed a Wi-Fi password, not out of nowhere. The names (no
+# passwords) of the networks already dealt with are in
+# ~/.local/state/wifi-sync/seen.
+
+set -euo pipefail
+
+ACCOUNT=${WIFI_SYNC_ACCOUNT:-my.1password.eu}
+VAULT=${WIFI_SYNC_VAULT:-Wi-Fi}
+SEEN=${XDG_STATE_HOME:-$HOME/.local/state}/wifi-sync/seen
+
+log() { echo "[wifi-sync] $*" >&2; }
+die() { log "error: $*"; exit 1; }
+
+# Network name -> password. `known` also has this machine's networks without one.
+# A name is only ever used as "${array[$name]}", never in [[ -v ]] or (( )),
+# which would evaluate it as code.
+declare -A here=() there=() known=()
+
+read_here() {
+  local uuid type name security password
+  while IFS=: read -r uuid type; do
+    [ "$type" = 802-11-wireless ] || continue
+    name="" security="" password=""
+    { IFS= read -r name; IFS= read -r security; IFS= read -r password; } < <(
+      nmcli -e no -s -g 802-11-wireless.ssid,802-11-wireless-security.key-mgmt,802-11-wireless-security.psk \
+        connection show uuid "$uuid" 2>/dev/null
+    ) || true
+    [ -n "$name" ] || continue
+    known[$name]=1
+    case "$security" in
+    wpa-psk | sae)
+      if [ -n "$password" ]; then
+        here[$name]=$password
+      else
+        log "skipped $name: this machine has no password stored for it"
+      fi ;;
+    esac
+  done < <(nmcli -t -f UUID,TYPE connection show)
+}
+
+# Fails when the vault isn't there yet. Dies when 1Password can't be reached.
+vault_exists() {
+  local vaults
+  vaults=$(op vault list --account "$ACCOUNT" --format json </dev/null) ||
+    die "can't reach 1Password ($ACCOUNT): sign in to the 1Password app and turn on Settings > Developer > Integrate with 1Password CLI"
+  NAME=$VAULT jq -e 'any(.[]; .name == env.NAME)' <<<"$vaults" >/dev/null
+}
+
+read_there() {
+  local list items name password
+  list=$(op item list --vault "$VAULT" --categories "Wireless Router" --account "$ACCOUNT" --format json </dev/null) ||
+    die "can't list the $VAULT vault"
+  [ "$(jq length <<<"$list")" -gt 0 ] || return 0
+  # Base64, so that no character in a name or password can break the lines.
+  items=$(op item get - --account "$ACCOUNT" --format json <<<"$list" | jq -r '
+    def field($id): ([.fields[]? | select(.id == $id) | .value // ""] | first) // "";
+    .title as $title
+    | [(field("network_name") | if . == "" then $title else . end), field("wireless_password")]
+    | map(@base64) | join(" ")') || die "can't read the items in the $VAULT vault"
+  while read -r name password; do
+    name=$(base64 -d <<<"$name")
+    password=$(base64 -d <<<"${password:-}")
+    [ -n "$name" ] || continue
+    if [ -n "$password" ]; then
+      there[$name]=$password
+    else
+      log "skipped $name: its 1Password item has no password"
+      there[$name]=""
+    fi
+  done <<<"$items"
+}
+
+# The password travels in the environment and on stdin, never as a command
+# argument: those are readable by every process on the machine.
+save_there() {
+  NAME=$1 PASSWORD=$2 jq -n '{
+    title: env.NAME, category: "WIRELESS_ROUTER",
+    fields: [
+      {id: "network_name", type: "STRING", label: "network name", value: env.NAME},
+      {id: "wireless_password", type: "CONCEALED", label: "wireless network password", value: env.PASSWORD}
+    ]}' | op item create --vault "$VAULT" --account "$ACCOUNT" - >/dev/null
+}
+
+# The way Omarchy's network panel adds one: the password goes in through
+# nmcli's editor on stdin. Read back afterwards, so a password the editor
+# mangled doesn't stay behind as a network that can't connect.
+add_here() {
+  local name=$1 password=$2 uuid
+  uuid=$(uuidgen)
+  nmcli connection add type wifi con-name "$name" ssid "$name" connection.uuid "$uuid" \
+    wifi-sec.key-mgmt wpa-psk >/dev/null || return 1
+  if printf 'set wifi-sec.psk %s\nsave\nquit\n' "$password" | nmcli connection edit uuid "$uuid" >/dev/null 2>&1 &&
+    [ "$(nmcli -e no -s -g 802-11-wireless-security.psk connection show uuid "$uuid")" = "$password" ]; then
+    return 0
+  fi
+  nmcli connection delete uuid "$uuid" >/dev/null 2>&1 || true
+  return 1
+}
+
+sorted() { [ $# -eq 0 ] || printf '%s\n' "$@" | sort; }
+
+# The network this machine is on, if it has a password and isn't in $SEEN.
+new_network() {
+  local uuid type name security
+  while IFS=: read -r uuid type; do
+    [ "$type" = 802-11-wireless ] || continue
+    name="" security=""
+    { IFS= read -r name; IFS= read -r security; } < <(
+      nmcli -e no -g 802-11-wireless.ssid,802-11-wireless-security.key-mgmt connection show uuid "$uuid" 2>/dev/null
+    ) || true
+    case "$security" in wpa-psk | sae) ;; *) continue ;; esac
+    [ -n "$name" ] || continue
+    if ! grep -qxF -- "$name" "$SEEN" 2>/dev/null; then
+      printf '%s\n' "$name"
+      return 0
+    fi
+  done < <(nmcli -t -f UUID,TYPE connection show --active)
+  return 1
+}
+
+# A full sync if the current network is new, with a notification saying what
+# changed. A failure is retried the next time the machine connects. A sync
+# that works but leaves the network new (NetworkManager didn't hand out its
+# password yet, seen right after a network is created) is tried twice more.
+sync_new() {
+  local name out changes attempt
+  for attempt in 1 2 3; do
+    name=$(new_network) || return 0
+    nm-online -q -t 60 || return 0 # 1Password needs the internet, not just the Wi-Fi
+    log "new network: $name"
+    if ! out=$("$0" 2>&1); then
+      echo "$out" >&2
+      notify-send -a wifi-sync "Wi-Fi networks" "Could not save $name to 1Password. Run wifi-sync to see why." || true
+      return 0
+    fi
+    echo "$out" >&2
+    changes=$(sed -n 's/^\[wifi-sync\] \(saved to\|added to\)/\1/p' <<<"$out" | sed 's/^./\U&/')
+    [ -z "$changes" ] || notify-send -a wifi-sync "Wi-Fi networks" "$changes" || true
+    new_network >/dev/null || return 0
+    [ "$attempt" -eq 3 ] || sleep 10
+  done
+}
+
+watch() {
+  local line
+  sync_new || true
+  # One line per change, e.g. "wlan0: connected". LC_ALL: nmcli translates them.
+  LC_ALL=C stdbuf -oL nmcli monitor | while IFS= read -r line; do
+    case "$line" in *": connected") sync_new || true ;; esac
+  done
+}
+
+dry=""
+[ "${1:-}" = -n ] && { dry=1; shift; }
+mode=${1:-sync}
+case "$mode" in
+sync | push | pull | watch) ;;
+*) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
+
+for tool in nmcli op jq uuidgen; do
+  command -v "$tool" >/dev/null || die "$tool is not installed"
+done
+
+if [ "$mode" = watch ]; then
+  watch
+  exit
+fi
+
+# One sync at a time: two at once (by hand, and from `watch`) would both add
+# or save the same network.
+mkdir -p "$(dirname "$SEEN")"
+exec 9>"$(dirname "$SEEN")/lock"
+flock 9
+
+have_vault=""
+vault_exists && have_vault=1
+read_here
+[ -z "$have_vault" ] || read_there
+
+same=0 saved=0 added=0 differ=0
+declare -A failed=()
+
+while IFS= read -r name; do
+  [ -n "$name" ] || continue
+  if [ -z "${there[$name]+x}" ]; then
+    [ "$mode" != pull ] || continue
+    if [ -n "$dry" ]; then
+      log "would save to 1Password: $name"
+    else
+      if [ -z "$have_vault" ]; then
+        op vault create "$VAULT" --account "$ACCOUNT" </dev/null >/dev/null || die "can't create the $VAULT vault"
+        have_vault=1
+      fi
+      save_there "$name" "${here[$name]}" || die "can't save $name to 1Password"
+      log "saved to 1Password: $name"
+    fi
+    saved=$((saved + 1))
+  elif [ -z "${there[$name]}" ]; then
+    : # reported by read_there
+  elif [ "${there[$name]}" = "${here[$name]}" ]; then
+    same=$((same + 1))
+  else
+    log "differs: $name has one password here and another in 1Password. To keep 1Password's, forget the network here; to keep this machine's, delete the 1Password item. Then run wifi-sync again."
+    differ=$((differ + 1))
+  fi
+done < <(sorted "${!here[@]}")
+
+if [ "$mode" != push ]; then
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    [ -n "${there[$name]}" ] || continue
+    [ -z "${known[$name]+x}" ] || continue
+    if [ -n "$dry" ]; then
+      log "would add to this machine: $name"
+    elif add_here "$name" "${there[$name]}"; then
+      log "added to this machine: $name"
+    else
+      log "could not add $name to this machine"
+      failed[$name]=1
+      continue
+    fi
+    added=$((added + 1))
+  done < <(sorted "${!there[@]}")
+fi
+
+summary="$same the same on both sides"
+[ "$mode" = pull ] || summary+=", $saved ${dry:+to be }saved to 1Password"
+[ "$mode" = push ] || summary+=", $added ${dry:+to be }added to this machine"
+[ "$differ" -eq 0 ] || summary+=", $differ with different passwords"
+log "$summary"
+
+# For `watch`: every network that 1Password has or that was up for saving
+# there, whatever came of it. One whose password couldn't be read stays new,
+# and so do this machine's own after a `pull`, which doesn't save them.
+if [ -z "$dry" ]; then
+  [ "$mode" != pull ] || here=()
+  for name in "${!here[@]}" "${!there[@]}"; do
+    [ -n "${failed[$name]+x}" ] || printf '%s\n' "$name"
+  done | sort -u >"$SEEN"
+fi
