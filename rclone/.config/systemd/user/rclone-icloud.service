@@ -1,0 +1,50 @@
+# iCloud Drive as the folder ~/iCloudDrive, mounted by rclone at login.
+# Enabled by install-icloud-drive.sh in omarchy-supplement, which also signs in
+# to Apple: the rclone remote "icloud", mounted here.
+#
+# Apple's sign-in runs out every few weeks. The folder then shows errors until
+# `rclone config reconnect icloud:` is run in a terminal (Apple ID password and
+# a code on the iPhone), followed by `systemctl --user restart rclone-icloud`.
+#
+# After a change here:
+#   systemctl --user daemon-reload && systemctl --user restart rclone-icloud
+# Status and logs:
+#   systemctl --user status rclone-icloud
+#   journalctl --user -u rclone-icloud -f
+
+[Unit]
+Description=iCloud Drive at ~/iCloudDrive (rclone)
+# No After=network-online.target: a user session has no such target. Without a
+# network the mount fails and is tried again every 30 seconds, for as long as
+# it takes (no start limit).
+StartLimitIntervalSec=0
+
+[Service]
+# notify: started only once the folder is really mounted
+Type=notify
+# A killed rclone leaves a dead mount behind ("Transport endpoint is not
+# connected"), on which every restart would fail. Clear it first; the leading
+# "-" and -q keep this silent when there is nothing to clear.
+ExecStartPre=-/usr/bin/fusermount3 -uzq %h/iCloudDrive
+ExecStartPre=/usr/bin/mkdir -p %h/iCloudDrive
+# full:           files are fetched when opened and can be edited in place
+# max-size, age:  what was opened stays on disk, up to 10 GB and for 30 days
+#                 (rclone's default drops a file an hour after its last use)
+# dir-cache-time: iCloud doesn't tell rclone about changes made elsewhere (no
+#                 polling, unlike Google Drive), so folder listings are read
+#                 again after 5 minutes
+ExecStart=/usr/bin/rclone mount icloud: %h/iCloudDrive \
+  --vfs-cache-mode full \
+  --vfs-cache-max-size 10G \
+  --vfs-cache-max-age 720h \
+  --dir-cache-time 5m
+# -z: unmount even while a program still has the folder open. Without it the
+# stop fails and leaves a dead mount. rclone then ends on systemd's SIGTERM
+# with exit status 143, which is a clean stop, not a failure.
+ExecStop=/usr/bin/fusermount3 -uz %h/iCloudDrive
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

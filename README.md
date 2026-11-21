@@ -45,6 +45,7 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | `wifi` | `.local/bin/wifi-sync` | The same Wi-Fi networks and passwords on this machine (NetworkManager) and in 1Password (vault `Wi-Fi`, personal account): saves this machine's networks there, adds the ones it doesn't know from there (run `wifi-sync help`) | The service below, or by hand; on a new machine, `install-wifi.sh` in omarchy-supplement |
 | | `.config/systemd/user/wifi-sync.service` | Runs `wifi-sync watch`: a sync when this machine joins a network it hasn't synced before, with a notification saying what was saved or added | systemd (user service), enabled by `install-wifi.sh` in omarchy-supplement |
 | `rclone` | `.config/systemd/user/rclone-gdrive.service` | Google Drive as the folder `~/GoogleDrive`, with `My Drive` and one folder per shared drive inside: mounted by rclone at login, files fetched when they're opened, the last 10 GB opened kept on disk for 30 days, Google Docs as links that open in the browser | systemd (user service), enabled by `install-google-drive.sh` in omarchy-supplement, which also does the Google sign-in |
+| | `.config/systemd/user/rclone-icloud.service` | iCloud Drive as the folder `~/iCloudDrive`, mounted the same way; folder listings refreshed every 5 minutes, since iCloud doesn't report changes | systemd (user service), enabled by `install-icloud-drive.sh` in omarchy-supplement, which also does the Apple sign-in |
 
 ## Editing and applying changes
 
@@ -61,6 +62,7 @@ here.
 | XCompose | Edit the rules in `xcompose/.config/xcompose/generate-dead-keys`, run it, then `omarchy restart xcompose` |
 | tmux | `prefix q` |
 | Google Drive mount | `systemctl --user daemon-reload && systemctl --user restart rclone-gdrive` |
+| iCloud Drive mount | `systemctl --user daemon-reload && systemctl --user restart rclone-icloud`; after the Apple sign-in runs out, `rclone config reconnect icloud:` first |
 | `wifi-sync` | `systemctl --user daemon-reload && systemctl --user restart wifi-sync` (the service keeps running the script it started with) |
 | Neovim | Restart Neovim. Toggle extras with `:LazyExtras`; the change lands in `lazyvim.json` here. |
 
