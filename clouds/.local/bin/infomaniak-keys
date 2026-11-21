@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# infomaniak-keys: make the two keys `infomaniak` runs with and save them in
+# 1Password, never on the screen.
+#
+#   infomaniak-keys ~/Downloads/<the project's openrc file>
+#
+# The RC file is the project's, from Infomaniak's manager (region dc3-a). This
+# asks for the project user's password without showing it, checks it, then
+# makes an application credential and an S3 key pair of the project and saves
+# each as the API Credential item `infomaniak` reads. A key already in
+# 1Password is left as it is, so running this again only makes what is
+# missing; a key made but not saved is deleted again. Both are made from the
+# password's session: Keystone mints neither from a session that signed in
+# with an application credential. INFOMANIAK_OP_* choose the account, vault
+# and items, as for `infomaniak`.
+
+set -euo pipefail
+
+rc=${1:-}
+if [ -z "$rc" ] || [ ! -r "$rc" ]; then
+  sed -n '2,5p' "$0" | sed 's/^# \{0,1\}//'
+  exit 1
+fi
+
+account=${INFOMANIAK_OP_ACCOUNT:-my.1password.eu}
+vault=${INFOMANIAK_OP_VAULT:-Main}
+openstack_item=${INFOMANIAK_OP_OPENSTACK_ITEM:-infomaniak-chalet-openstack}
+s3_item=${INFOMANIAK_OP_S3_ITEM:-infomaniak-chalet-s3}
+
+# Opening the vault asks the 1Password app, as every read below will (op
+# whoami doesn't, and says "not signed in" under the app's integration).
+op vault get "$vault" --account "$account" >/dev/null 2>&1 || {
+  echo "1Password can't open the vault $vault: is the app signed in, with Settings > Developer > \"Integrate with 1Password CLI\" on?" >&2
+  exit 1
+}
+
+saved() { op item get "$1" --vault "$vault" --account "$account" >/dev/null 2>&1; }
+
+# The credential as openstack prints it, on stdin; its ID or access key is in
+# the field named $2. Into 1Password through a pipe: no secret on the screen
+# or in a command's arguments.
+save() {
+  jq -e --arg title "$1" --arg key "$2" '{title: $title, category: "API_CREDENTIAL", fields: [
+    {id: "username", type: "STRING", value: .[$key]},
+    {id: "credential", type: "CONCEALED", value: .secret}]}' |
+    op item create --vault "$vault" --account "$account" - >/dev/null
+}
+
+if saved "$openstack_item" && saved "$s3_item"; then
+  echo "Both keys are in 1Password already."
+  exit 0
+fi
+
+# The RC file asks for the password itself, but shows it as it's typed. Set
+# beforehand, it asks nothing. What the shell held for openstack goes first.
+for name in $(compgen -e); do
+  case $name in OS_*) unset "$name" ;; esac
+done
+read -rsp "OpenStack password for $(sed -n 's/^export OS_USERNAME=//p' "$rc"): " OS_PASSWORD
+echo
+export OS_PASSWORD
+set +u
+# shellcheck source=/dev/null
+source "$rc"
+set -u
+
+openstack token issue -f value -c expires >/dev/null || {
+  echo "Infomaniak refused the sign-in: check the password, and that the RC file is the project's (region dc3-a)." >&2
+  exit 1
+}
+
+if saved "$openstack_item"; then
+  echo "$openstack_item: already in 1Password"
+else
+  name="1password-$(date +%Y%m%d-%H%M%S)"
+  json=$(openstack application credential create "$name" -f json)
+  if save "$openstack_item" id <<<"$json"; then
+    echo "$openstack_item: saved in 1Password (application credential $name)"
+  else
+    openstack application credential delete "$name" >/dev/null 2>&1 || true
+    echo "$openstack_item: couldn't be saved in 1Password, so the credential was deleted again" >&2
+    exit 1
+  fi
+fi
+
+if saved "$s3_item"; then
+  echo "$s3_item: already in 1Password"
+else
+  json=$(openstack ec2 credentials create -f json)
+  if save "$s3_item" access <<<"$json"; then
+    echo "$s3_item: saved in 1Password"
+  else
+    openstack ec2 credentials delete "$(jq -r .access <<<"$json")" >/dev/null 2>&1 || true
+    echo "$s3_item: couldn't be saved in 1Password, so the key pair was deleted again" >&2
+    exit 1
+  fi
+fi

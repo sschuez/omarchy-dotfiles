@@ -50,6 +50,7 @@ such folder links.
 | | `.local/bin/icloud-signin-check` | Asks whether Apple still takes iCloud Drive's sign-in (it lasts 30 days). If not: a notification that opens the sign-in in a terminal when clicked | The mount's unit before it mounts, the two below every hour, and `install-icloud-drive.sh` |
 | | `.config/systemd/user/rclone-icloud-check.timer`, `.service` | Every hour while iCloud Drive is mounted: unmounts it once Apple refuses the sign-in, so the folder is empty, not full of errors | systemd (user timer), enabled by `install-icloud-drive.sh` |
 | `clouds` | `.local/bin/infomaniak`, `.local/bin/exoscale` | One command against a cloud, with its keys from 1Password for that command alone: `infomaniak openstack …` and `infomaniak aws …` for Infomaniak's Public Cloud (chalet), `exoscale exo …` for Exoscale (submissio). Which items they read, and how the keys are made: omarchy-supplement's README, "Clouds" | By hand; the command lines come from `install-cloud-clis.sh` in omarchy-supplement |
+| | `.local/bin/infomaniak-keys` | Makes the two keys `infomaniak` runs with, from the project's OpenStack RC file and its user's password (asked, never shown), and saves them in 1Password, never on the screen; skips a key already there | By hand, once per project (omarchy-supplement's README, "Clouds") |
 | | `.config/clouds/infomaniak-aws.conf` | aws's settings under `infomaniak`: Infomaniak's endpoint and region, and the bucket in the path, as chalet's own client sends it | `infomaniak` (`AWS_CONFIG_FILE`) |
 
 ## Editing and applying changes
