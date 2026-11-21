@@ -13,6 +13,10 @@
 #                                (seen with a broken session cookie)
 #   trust token                  no sign-in yet, or one too old to start a
 #                                new session with (from rclone's source)
+#   sign in failed               rclone tried to start a new session itself,
+#                                which it can't: it isn't given the password
+#                                (seen with a wrong one). Not to be repeated:
+#                                Apple locks an account after too many
 # Anything else that fails, such as no network, is not a refusal: exit 0, and
 # the mount is left alone. If an rclone update changes those words, a sign-in
 # that has run out shows as errors in the folder again, with no notification.
@@ -21,7 +25,7 @@ SIGN_IN="$HOME/Code/omarchy-supplement/install-icloud-drive.sh"
 
 # One attempt, no retries: this runs before every mount and every hour.
 if error=$(rclone lsd icloud: --max-depth 1 --retries 1 --low-level-retries 1 2>&1 >/dev/null) ||
-  ! grep -Eq 'trust token|HTTP error 4(01|21|23) ' <<<"$error"; then
+  ! grep -Eq 'trust token|sign in failed|HTTP error 4(01|21|23) ' <<<"$error"; then
   exit 0
 fi
 

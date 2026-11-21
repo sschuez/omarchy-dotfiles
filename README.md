@@ -176,7 +176,8 @@ the app needs one.
   `icloud-signin-check` asks Apple before every mount (the unit's
   `ExecCondition`) and every hour after that (`rclone-icloud-check.timer`). On
   a refusal the folder is unmounted, and a notification runs
-  `install-icloud-drive.sh` from omarchy-supplement when clicked: a new code
-  from the iPhone, and it's mounted again. The check goes by the words of
+  `install-icloud-drive.sh` from omarchy-supplement when clicked: the password
+  from 1Password (it is not kept on this machine), a new code from the iPhone,
+  and it's mounted again. The check goes by the words of
   rclone's errors, listed in the script: if an rclone update changes them,
   that is the place to look.
