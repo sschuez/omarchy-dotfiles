@@ -6,13 +6,13 @@
 #
 # The RC file is the project's, from Infomaniak's manager (region dc3-a). This
 # asks for the project user's password without showing it, checks it, then
-# makes an application credential and an S3 key pair of the project and saves
-# each as the API Credential item `infomaniak` reads. A key already in
-# 1Password is left as it is, so running this again only makes what is
-# missing; a key made but not saved is deleted again. Both are made from the
-# password's session: Keystone mints neither from a session that signed in
-# with an application credential. INFOMANIAK_OP_* choose the account, vault
-# and items, as for `infomaniak`.
+# makes an application credential and an S3 key pair of the project, saves
+# each as the API Credential item `infomaniak` reads, and last signs in with
+# both from 1Password to show they work. A key already saved is left as it
+# is, so running this again only makes what is missing. Both are made from
+# the password's session: Keystone mints neither from a session that signed
+# in with an application credential. INFOMANIAK_OP_* choose the account,
+# vault and items, as for `infomaniak`.
 
 set -euo pipefail
 
@@ -26,6 +26,7 @@ account=${INFOMANIAK_OP_ACCOUNT:-my.1password.eu}
 vault=${INFOMANIAK_OP_VAULT:-Main}
 openstack_item=${INFOMANIAK_OP_OPENSTACK_ITEM:-infomaniak-chalet-openstack}
 s3_item=${INFOMANIAK_OP_S3_ITEM:-infomaniak-chalet-s3}
+prefix=1password # the name of every application credential this makes begins so
 
 # Opening the vault asks the 1Password app, as every read below will (op
 # whoami doesn't, and says "not signed in" under the app's integration).
@@ -34,20 +35,52 @@ op vault get "$vault" --account "$account" >/dev/null 2>&1 || {
   exit 1
 }
 
-saved() { op item get "$1" --vault "$vault" --account "$account" >/dev/null 2>&1; }
-
-# The credential as openstack prints it, on stdin; its ID or access key is in
-# the field named $2. Into 1Password through a pipe: no secret on the screen
-# or in a command's arguments.
-save() {
-  jq -e --arg title "$1" --arg key "$2" '{title: $title, category: "API_CREDENTIAL", fields: [
-    {id: "username", type: "STRING", value: .[$key]},
-    {id: "credential", type: "CONCEALED", value: .secret}]}' |
-    op item create --vault "$vault" --account "$account" - >/dev/null
+# An item with its username and credential both filled.
+complete() {
+  op item get "$1" --vault "$vault" --account "$account" --format json 2>/dev/null |
+    jq -e '[.fields[] | select((.id == "username" or .id == "credential") and (.value // "") != "")] | length == 2' >/dev/null
 }
 
-if saved "$openstack_item" && saved "$s3_item"; then
+# An item left by an earlier run without its key (nothing in it filled but
+# notes) goes; one that holds anything else is not this command's to remove.
+clear_empty() {
+  local item
+  item=$(op item get "$1" --vault "$vault" --account "$account" --format json 2>/dev/null) || return 0
+  if jq -e '[.fields[] | select(.id != "notesPlain" and (.value // "") != "")] | length == 0' >/dev/null <<<"$item"; then
+    op item delete "$(jq -r .id <<<"$item")" --account "$account"
+    echo "$1: removed the empty item an earlier run left"
+  else
+    echo "$1 is in 1Password without a username and credential: fix or remove it, then run this again." >&2
+    exit 1
+  fi
+}
+
+# The credential as openstack prints it, on stdin: field names in either case
+# (an application credential says ID and Secret, a key pair access and
+# secret), its ID or access key in the one named $2. Refused unless both are
+# there, so no empty item is ever saved. Into 1Password on stdin: no secret on
+# the screen or in a command's arguments.
+save() {
+  local item
+  item=$(jq -e --arg title "$1" --arg key "$2" '
+    with_entries(.key |= ascii_downcase) |
+    if (.[$key] | type) == "string" and .[$key] != "" and (.secret | type) == "string" and .secret != ""
+    then {title: $title, category: "API_CREDENTIAL", fields: [
+      {id: "username", type: "STRING", value: .[$key]},
+      {id: "credential", type: "CONCEALED", value: .secret}]}
+    else error("openstack printed no \($key) and secret") end') || return 1
+  op item create --vault "$vault" --account "$account" - >/dev/null <<<"$item"
+}
+
+check() {
+  echo "Signing in with both keys from 1Password…"
+  infomaniak openstack token issue -f value -c expires >/dev/null && echo "  infomaniak openstack: works"
+  infomaniak aws s3 ls >/dev/null && echo "  infomaniak aws: works"
+}
+
+if complete "$openstack_item" && complete "$s3_item"; then
   echo "Both keys are in 1Password already."
+  check
   exit 0
 fi
 
@@ -69,10 +102,19 @@ openstack token issue -f value -c expires >/dev/null || {
   exit 1
 }
 
-if saved "$openstack_item"; then
+if complete "$openstack_item"; then
   echo "$openstack_item: already in 1Password"
 else
-  name="1password-$(date +%Y%m%d-%H%M%S)"
+  # A credential of this command's that isn't saved is of no use: its secret
+  # was shown once, to a run that lost it. With no saved one, every such
+  # credential is that.
+  openstack application credential list -f json |
+    jq -r --arg prefix "$prefix" '.[] | with_entries(.key |= ascii_downcase) | .name | select(startswith($prefix))' |
+    while read -r old; do
+      openstack application credential delete "$old" && echo "$openstack_item: deleted $old, made by an earlier run that couldn't save it"
+    done
+  clear_empty "$openstack_item"
+  name="$prefix-$(date +%Y%m%d-%H%M%S)"
   json=$(openstack application credential create "$name" -f json)
   if save "$openstack_item" id <<<"$json"; then
     echo "$openstack_item: saved in 1Password (application credential $name)"
@@ -83,15 +125,18 @@ else
   fi
 fi
 
-if saved "$s3_item"; then
+if complete "$s3_item"; then
   echo "$s3_item: already in 1Password"
 else
+  clear_empty "$s3_item"
   json=$(openstack ec2 credentials create -f json)
   if save "$s3_item" access <<<"$json"; then
     echo "$s3_item: saved in 1Password"
   else
-    openstack ec2 credentials delete "$(jq -r .access <<<"$json")" >/dev/null 2>&1 || true
+    openstack ec2 credentials delete "$(jq -r '.access // .Access' <<<"$json")" >/dev/null 2>&1 || true
     echo "$s3_item: couldn't be saved in 1Password, so the key pair was deleted again" >&2
     exit 1
   fi
 fi
+
+check
