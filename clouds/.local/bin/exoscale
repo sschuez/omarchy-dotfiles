@@ -5,10 +5,10 @@
 #   exoscale exo compute instance list
 #   exoscale exo storage ls sos://<bucket>
 #
-# The key is the API Credential item "exoscale-ops" (the Owner key) in the
-# vault Shared of the submissio account, the key as its username and the
-# secret as its credential. EXOSCALE_OP_ACCOUNT, EXOSCALE_OP_VAULT and
-# EXOSCALE_OP_ITEM choose another, say a narrower key of its own.
+# The key is the API Credential item "exoscale-ops" in the vault Shared of the
+# submissio account, the key as its username and the secret as its
+# credential. EXOSCALE_OP_ACCOUNT, EXOSCALE_OP_VAULT and EXOSCALE_OP_ITEM
+# choose another, say a narrower key.
 #
 # op run puts it in the command's environment and nowhere else: nothing in
 # ~/.config/exoscale. Needs the 1Password app signed in, with Settings >
@@ -26,6 +26,12 @@ esac
 account=${EXOSCALE_OP_ACCOUNT:-submissioag.1password.com}
 vault=${EXOSCALE_OP_VAULT:-Shared}
 item=${EXOSCALE_OP_ITEM:-exoscale-ops}
+
+# What the shell already holds for exo (another account of its config file,
+# another key) would win over the key below, or mix into it.
+for name in $(compgen -e); do
+  case $name in EXOSCALE_*) unset "$name" ;; esac
+done
 
 export EXOSCALE_API_KEY="op://$vault/$item/username"
 export EXOSCALE_API_SECRET="op://$vault/$item/credential"

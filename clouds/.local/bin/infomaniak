@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# infomaniak: one command against Infomaniak's Public Cloud, project
-# chalet-production, with its keys from 1Password for that command alone.
+# infomaniak: one command against Infomaniak's Public Cloud (chalet's
+# project), with its keys from 1Password for that command alone.
 #
 #   infomaniak openstack server list
-#   infomaniak aws s3api get-bucket-cors --bucket chalet-production
+#   infomaniak aws s3 ls s3://<bucket>
 #
 # openstack signs in with an application credential of the project, aws with
-# an S3 key pair of it (chalet's docs/deploy.md, steps 1 and 2). Each is an
-# API Credential item in 1Password, the ID or access key as its username and
-# the secret as its credential: "Infomaniak chalet-production OpenStack" and
-# "Infomaniak chalet-production S3", in the vault Main of my personal account.
-# INFOMANIAK_OP_ACCOUNT, INFOMANIAK_OP_VAULT, INFOMANIAK_OP_OPENSTACK_ITEM and
-# INFOMANIAK_OP_S3_ITEM choose others.
+# an S3 key pair of it. Each is an API Credential item in 1Password, the ID or
+# access key as its username and the secret as its credential:
+# "infomaniak-chalet-openstack" and "infomaniak-chalet-s3", in the vault Main
+# of my personal account (no brackets in a name: an op:// reference refuses
+# them). INFOMANIAK_OP_ACCOUNT, INFOMANIAK_OP_VAULT,
+# INFOMANIAK_OP_OPENSTACK_ITEM and INFOMANIAK_OP_S3_ITEM choose others.
 #
 # op run puts the keys in the command's environment and nowhere else: nothing
 # in ~/.config/openstack/clouds.yaml or ~/.aws. Only the item the command
@@ -30,11 +30,17 @@ esac
 
 account=${INFOMANIAK_OP_ACCOUNT:-my.1password.eu}
 vault=${INFOMANIAK_OP_VAULT:-Main}
-openstack_item=${INFOMANIAK_OP_OPENSTACK_ITEM:-Infomaniak chalet-production OpenStack}
-s3_item=${INFOMANIAK_OP_S3_ITEM:-Infomaniak chalet-production S3}
+openstack_item=${INFOMANIAK_OP_OPENSTACK_ITEM:-infomaniak-chalet-openstack}
+s3_item=${INFOMANIAK_OP_S3_ITEM:-infomaniak-chalet-s3}
+
+# What the shell already holds for either command line would mix into the
+# sign-in: an RC file sourced earlier, a clouds.yaml entry (OS_CLOUD), an AWS
+# profile or session token.
+for name in $(compgen -e); do
+  case $name in OS_* | AWS_*) unset "$name" ;; esac
+done
 
 openstack_keys() {
-  unset OS_CLOUD # an entry in a clouds.yaml would win over the variables below
   export OS_AUTH_TYPE=v3applicationcredential
   export OS_AUTH_URL=https://api.pub1.infomaniak.cloud/identity/v3
   export OS_IDENTITY_API_VERSION=3
