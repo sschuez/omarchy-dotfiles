@@ -2,9 +2,10 @@
 # Enabled by install-icloud-drive.sh in omarchy-supplement, which also signs in
 # to Apple: the rclone remote "icloud", mounted here.
 #
-# Apple's sign-in runs out every few weeks. The folder then shows errors until
-# `rclone config reconnect icloud:` is run in a terminal (Apple ID password and
-# a code on the iPhone), followed by `systemctl --user restart rclone-icloud`.
+# Apple's sign-in lasts 30 days. Once Apple refuses it, the folder is
+# unmounted and a notification opens the sign-in when clicked: this unit
+# checks before it mounts (ExecCondition below), rclone-icloud-check.timer
+# every hour after that.
 #
 # After a change here:
 #   systemctl --user daemon-reload && systemctl --user restart rclone-icloud
@@ -22,6 +23,13 @@ StartLimitIntervalSec=0
 [Service]
 # notify: started only once the folder is really mounted
 Type=notify
+# Ask Apple first. With a sign-in it refuses, rclone would either fail and be
+# started again every 30 seconds, for as long as it takes, or mount a folder
+# that only shows errors. icloud-signin-check exits 1 then, which here means
+# skipped: not started, not failed, so not retried. Its notification leads to
+# a new sign-in. Anything else that goes wrong, such as no network, passes
+# and is retried below.
+ExecCondition=%h/.local/bin/icloud-signin-check
 # A killed rclone leaves a dead mount behind ("Transport endpoint is not
 # connected"), on which every restart would fail. Clear it first; the leading
 # "-" and -q keep this silent when there is nothing to clear.

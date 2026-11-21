@@ -1,0 +1,10 @@
+# Enabled by install-icloud-drive.sh in omarchy-supplement.
+
+[Unit]
+Description=Check iCloud Drive's Apple sign-in every hour
+
+[Timer]
+OnCalendar=hourly
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Does iCloud Drive's Apple sign-in still work? Exits 0 if it does, and 1 if
+# Apple refuses it, with a notification that opens the sign-in in a terminal
+# when clicked (-q: no notification, only the answer).
+#
+# Asked by rclone-icloud.service before it mounts, by
+# rclone-icloud-check.service every hour while mounted, and by
+# install-icloud-drive.sh in omarchy-supplement, which does the signing in.
+#
+# "Refused" goes by the words of rclone's error, as of rclone 1.75:
+#   HTTP error 401, 421 or 423   Apple no longer takes the saved session
+#                                (seen with a broken session cookie)
+#   trust token                  no sign-in yet, or one too old to start a
+#                                new session with (from rclone's source)
+# Anything else that fails, such as no network, is not a refusal: exit 0, and
+# the mount is left alone. If an rclone update changes those words, a sign-in
+# that has run out shows as errors in the folder again, with no notification.
+
+SIGN_IN="$HOME/Code/omarchy-supplement/install-icloud-drive.sh"
+
+# One attempt, no retries: this runs before every mount and every hour.
+if error=$(rclone lsd icloud: --max-depth 1 --retries 1 --low-level-retries 1 2>&1 >/dev/null) ||
+  ! grep -Eq 'trust token|HTTP error 4(01|21|23) ' <<<"$error"; then
+  exit 0
+fi
+
+echo "Apple refuses the sign-in. Run $SIGN_IN"
+if [ "$1" != -q ]; then
+  # At login this runs before the shell that shows notifications is up.
+  gdbus wait --session --timeout 60 org.freedesktop.Notifications
+  # --exec: the shell runs it on a click, in Omarchy's floating terminal. It
+  # takes the rest of the line, so it comes last.
+  omarchy-notification-send --urgency critical \
+    "iCloud Drive" "The Apple sign-in has run out. Click to sign in again." \
+    --exec omarchy-launch-floating-terminal-with-presentation "$SIGN_IN"
+fi
+exit 1

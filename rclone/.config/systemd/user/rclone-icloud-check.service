@@ -1,0 +1,13 @@
+# Unmounts iCloud Drive when Apple no longer takes its sign-in, which lasts 30
+# days: rclone keeps running then, and the folder only shows errors. Run every
+# hour by rclone-icloud-check.timer. icloud-signin-check asks Apple and shows
+# the notification that leads to a new sign-in; that one mounts again.
+
+[Unit]
+Description=Unmount iCloud Drive when Apple refuses its sign-in
+
+[Service]
+Type=oneshot
+# Only while mounted. Unmounted, the notification has been shown already.
+ExecCondition=/usr/bin/systemctl --user --quiet is-active rclone-icloud.service
+ExecStart=/bin/sh -c '%h/.local/bin/icloud-signin-check || systemctl --user stop rclone-icloud.service'

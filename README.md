@@ -45,7 +45,9 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | `wifi` | `.local/bin/wifi-sync` | The same Wi-Fi networks and passwords on this machine (NetworkManager) and in 1Password (vault `Wi-Fi`, personal account): saves this machine's networks there, adds the ones it doesn't know from there (run `wifi-sync help`) | The service below, or by hand; on a new machine, `install-wifi.sh` in omarchy-supplement |
 | | `.config/systemd/user/wifi-sync.service` | Runs `wifi-sync watch`: a sync when this machine joins a network it hasn't synced before, with a notification saying what was saved or added | systemd (user service), enabled by `install-wifi.sh` in omarchy-supplement |
 | `rclone` | `.config/systemd/user/rclone-gdrive.service` | Google Drive as the folder `~/GoogleDrive`, with `My Drive` and one folder per shared drive inside: mounted by rclone at login, files fetched when they're opened, the last 10 GB opened kept on disk for 30 days, Google Docs as links that open in the browser | systemd (user service), enabled by `install-google-drive.sh` in omarchy-supplement, which also does the Google sign-in |
-| | `.config/systemd/user/rclone-icloud.service` | iCloud Drive as the folder `~/iCloudDrive`, mounted the same way; folder listings refreshed every 5 minutes, since iCloud doesn't report changes | systemd (user service), enabled by `install-icloud-drive.sh` in omarchy-supplement, which also does the Apple sign-in |
+| | `.config/systemd/user/rclone-icloud.service` | iCloud Drive as the folder `~/iCloudDrive`, mounted the same way; folder listings refreshed every 5 minutes, since iCloud doesn't report changes. Not mounted with a sign-in Apple refuses | systemd (user service), enabled by `install-icloud-drive.sh` in omarchy-supplement, which also does the Apple sign-in |
+| | `.local/bin/icloud-signin-check` | Asks whether Apple still takes iCloud Drive's sign-in (it lasts 30 days). If not: a notification that opens the sign-in in a terminal when clicked | The mount's unit before it mounts, the two below every hour, and `install-icloud-drive.sh` |
+| | `.config/systemd/user/rclone-icloud-check.timer`, `.service` | Every hour while iCloud Drive is mounted: unmounts it once Apple refuses the sign-in, so the folder is empty, not full of errors | systemd (user timer), enabled by `install-icloud-drive.sh` |
 
 ## Editing and applying changes
 
@@ -62,7 +64,7 @@ here.
 | XCompose | Edit the rules in `xcompose/.config/xcompose/generate-dead-keys`, run it, then `omarchy restart xcompose` |
 | tmux | `prefix q` |
 | Google Drive mount | `systemctl --user daemon-reload && systemctl --user restart rclone-gdrive` |
-| iCloud Drive mount | `systemctl --user daemon-reload && systemctl --user restart rclone-icloud`; after the Apple sign-in runs out, `rclone config reconnect icloud:` first |
+| iCloud Drive mount | `systemctl --user daemon-reload && systemctl --user restart rclone-icloud` |
 | `wifi-sync` | `systemctl --user daemon-reload && systemctl --user restart wifi-sync` (the service keeps running the script it started with) |
 | Neovim | Restart Neovim. Toggle extras with `:LazyExtras`; the change lands in `lazyvim.json` here. |
 
@@ -168,3 +170,13 @@ the app needs one.
   lives in `~/.config/rclone/rclone.conf` and my Google API client in
   1Password (see omarchy-supplement). `systemctl --user disable` removes the
   unit's Stow link along with its own; restow the package to get it back.
+- **iCloud Drive is unmounted once Apple refuses its sign-in.** The sign-in
+  lasts 30 days, and rclone doesn't renew it: it keeps running on a folder that
+  only shows errors, or fails and is started again every 30 seconds. So
+  `icloud-signin-check` asks Apple before every mount (the unit's
+  `ExecCondition`) and every hour after that (`rclone-icloud-check.timer`). On
+  a refusal the folder is unmounted, and a notification runs
+  `install-icloud-drive.sh` from omarchy-supplement when clicked: a new code
+  from the iPhone, and it's mounted again. The check goes by the words of
+  rclone's errors, listed in the script: if an rclone update changes them,
+  that is the place to look.
