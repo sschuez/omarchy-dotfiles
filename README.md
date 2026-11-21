@@ -20,7 +20,8 @@ tmux/.config/tmux/overrides.conf   →   ~/.config/tmux/overrides.conf (symlink)
 `-t ~` matters, because this repo lives in `~/Code`, not in `~`.
 
 If the target folder doesn't exist yet, Stow links the whole folder instead of
-the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
+the file. `~/.config/bash`, `~/.config/xcompose` and `~/.config/clouds` are
+such folder links.
 
 ## Packages
 
@@ -48,6 +49,8 @@ the file. `~/.config/bash` and `~/.config/xcompose` are such folder links.
 | | `.config/systemd/user/rclone-icloud.service` | iCloud Drive as the folder `~/iCloudDrive`, mounted the same way; folder listings refreshed every 5 minutes, since iCloud doesn't report changes. Not mounted with a sign-in Apple refuses | systemd (user service), enabled by `install-icloud-drive.sh` in omarchy-supplement, which also does the Apple sign-in |
 | | `.local/bin/icloud-signin-check` | Asks whether Apple still takes iCloud Drive's sign-in (it lasts 30 days). If not: a notification that opens the sign-in in a terminal when clicked | The mount's unit before it mounts, the two below every hour, and `install-icloud-drive.sh` |
 | | `.config/systemd/user/rclone-icloud-check.timer`, `.service` | Every hour while iCloud Drive is mounted: unmounts it once Apple refuses the sign-in, so the folder is empty, not full of errors | systemd (user timer), enabled by `install-icloud-drive.sh` |
+| `clouds` | `.local/bin/infomaniak`, `.local/bin/exoscale` | One command against a cloud, with its keys from 1Password for that command alone: `infomaniak openstack …` and `infomaniak aws …` for Infomaniak's Public Cloud (chalet), `exoscale exo …` for Exoscale (submissio). Which items they read, and how the keys are made: omarchy-supplement's README, "Clouds" | By hand; the command lines come from `install-cloud-clis.sh` in omarchy-supplement |
+| | `.config/clouds/infomaniak-aws.conf` | aws's settings under `infomaniak`: Infomaniak's endpoint and region, and the bucket in the path, as chalet's own client sends it | `infomaniak` (`AWS_CONFIG_FILE`) |
 
 ## Editing and applying changes
 
@@ -181,3 +184,9 @@ the app needs one.
   and it's mounted again. The check goes by the words of
   rclone's errors, listed in the script: if an rclone update changes them,
   that is the place to look.
+- **Cloud keys in 1Password, not in the command lines' config.** openstack,
+  aws and exo would each keep a key in a file of their own (`clouds.yaml`,
+  `~/.aws/credentials`, `exoscale.toml`). `infomaniak` and `exoscale` hand it
+  to one command with `op run` instead, so nothing on disk opens a cloud and a
+  new machine needs only 1Password. The price is 1Password's approval, as for
+  any `op` command.

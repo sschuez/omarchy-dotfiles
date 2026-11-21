@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# exoscale: one command against Exoscale (submissio), with its API key from
+# 1Password for that command alone.
+#
+#   exoscale exo compute instance list
+#   exoscale exo storage ls sos://<bucket>
+#
+# The key is the API Credential item "exoscale-ops" (the Owner key) in the
+# vault Shared of the submissio account, the key as its username and the
+# secret as its credential. EXOSCALE_OP_ACCOUNT, EXOSCALE_OP_VAULT and
+# EXOSCALE_OP_ITEM choose another, say a narrower key of its own.
+#
+# op run puts it in the command's environment and nowhere else: nothing in
+# ~/.config/exoscale. Needs the 1Password app signed in, with Settings >
+# Developer > "Integrate with 1Password CLI" turned on.
+
+set -euo pipefail
+
+case ${1:-} in
+  "" | -h | --help | help)
+    sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac
+
+account=${EXOSCALE_OP_ACCOUNT:-submissioag.1password.com}
+vault=${EXOSCALE_OP_VAULT:-Shared}
+item=${EXOSCALE_OP_ITEM:-exoscale-ops}
+
+export EXOSCALE_API_KEY="op://$vault/$item/username"
+export EXOSCALE_API_SECRET="op://$vault/$item/credential"
+
+exec op run --account "$account" -- "$@"
