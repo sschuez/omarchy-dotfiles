@@ -5,10 +5,11 @@
 #   exoscale exo compute instance list
 #   exoscale exo storage ls sos://<bucket>
 #
-# The key is the API Credential item "exoscale-ops" in the vault Shared of the
-# submissio account, the key as its username and the secret as its
-# credential. EXOSCALE_OP_ACCOUNT, EXOSCALE_OP_VAULT and EXOSCALE_OP_ITEM
-# choose another, say a narrower key.
+# The key is an API Credential item in submissio's 1Password, the key as its
+# username and the secret as its credential. It is named below by its IDs:
+# the account's, the vault's and the item's names are the company's, not this
+# public repo's. EXOSCALE_OP_ACCOUNT, EXOSCALE_OP_VAULT and EXOSCALE_OP_ITEM
+# choose another, by name or ID, say a narrower key.
 #
 # op run puts it in the command's environment and nowhere else: nothing in
 # ~/.config/exoscale. Needs the 1Password app signed in, with Settings >
@@ -23,9 +24,9 @@ case ${1:-} in
     ;;
 esac
 
-account=${EXOSCALE_OP_ACCOUNT:-submissioag.1password.com}
-vault=${EXOSCALE_OP_VAULT:-Shared}
-item=${EXOSCALE_OP_ITEM:-exoscale-ops}
+account=${EXOSCALE_OP_ACCOUNT:-LYQ2QZB6QBCS3DQDPVKNWJ2OKI}   # submissio's 1Password
+vault=${EXOSCALE_OP_VAULT:-c54ee3lt7vr4j3uwx3gdtubmze}
+item=${EXOSCALE_OP_ITEM:-455prgnskp6zw2rkgf3viluweu}       # its Exoscale API key
 
 # What the shell already holds for exo (another account of its config file,
 # another key) would win over the key below, or mix into it.
