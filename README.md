@@ -32,7 +32,7 @@ such folder links.
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
 | `xcompose` | `.config/xcompose/dead-keys` | Windows-style dead keys: they combine with vowels only (plus ç, ñ), so `I'm`, `"hello"` and `''` type as-is | Include line in `~/.XCompose` |
-| `tmux` | `.config/tmux/overrides.conf` | Vim-style navigation: `Ctrl+h/j/k/l` across panes and Neovim splits, `Alt+Shift+H/L` windows, `prefix h/j/k/l` panes, `prefix X` kill window, `prefix \|` / `prefix -` splits | Include line in `~/.config/tmux/tmux.conf` |
+| `tmux` | `.config/tmux/overrides.conf` | Vim-style navigation: `Ctrl+h/j/k/l` across panes and Neovim splits, `Alt+Shift+H/L` and `Alt+[` / `Alt+]` windows, `prefix h/j/k/l` panes, `prefix X` kill window, `prefix \|` / `prefix -` splits | Include line in `~/.config/tmux/tmux.conf` |
 | `nvim` | `.config/nvim/lazyvim.json` | LazyVim extras (owned outright, see below) | LazyVim |
 | | `.config/nvim/lua/plugins/lsp.lua` | Language servers (Ruby LSP, Herb, HTML, CSS, Emmet, XML), formatting through the language servers, extra syntax parsers | LazyVim, which loads every file in `lua/plugins/` |
 | | `.config/nvim/lua/plugins/tmux-navigator.lua` | Neovim side of the `Ctrl+h/j/k/l` navigation, in tmux and in Herdr | LazyVim |
