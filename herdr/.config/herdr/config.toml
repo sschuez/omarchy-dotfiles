@@ -82,9 +82,10 @@ rename_tab = "prefix+r"
 # mine: close tab on prefix X (prefix k moves focus up)
 close_tab = "prefix+shift+x"
 switch_tab = ["prefix+1..9", "alt+1..9"]
-# mine: alt+shift+h/l for tabs, like tmux windows
-previous_tab = ["prefix+p", "alt+left", "alt+shift+h"]
-next_tab = ["prefix+n", "alt+right", "alt+shift+l"]
+# mine: alt+shift+h/l for tabs, like tmux windows, and alt+[ / alt+] as in
+# the browser (Hyprland's alt+[ / alt+] acts only on browsers and passes through)
+previous_tab = ["prefix+p", "alt+left", "alt+shift+h", "alt+["]
+next_tab = ["prefix+n", "alt+right", "alt+shift+l", "alt+]"]
 
 # Like swap-window -t -1/+1 on M-S-Left/Right
 move_tab_previous = "alt+shift+left"
