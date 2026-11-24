@@ -163,6 +163,7 @@ window_title = "{hostname}: {workspace}"
 # mine: sidebar rows. A blank line between entries, secondary text dimmed, and
 # each agent as "workspace · tab" over "agent · state" (Herdr's default has
 # only the agent name on the second line).
+status_indicators = "symbols"
 [ui.sidebar.spaces]
 row_gap = 1
 rows = [
@@ -176,3 +177,9 @@ rows = [
   ["state_icon", "workspace", { token = "tab", dim = true }],
   [{ token = "agent", bold = false, dim = true }, "state_text"],
 ]
+
+[ui.toast]
+delivery = "system"
+
+[ui.sound]
+enabled = false
