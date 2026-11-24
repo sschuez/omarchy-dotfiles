@@ -88,6 +88,24 @@ it to `~/Code/omarchy-window-overview`, link
 `~/.config/omarchy/plugins/io.github.sschuez.window-overview` to that folder,
 and run `omarchy restart shell` after each change.
 
+## Claude Code mods
+
+`claude-mods/` is not a Stow package: it is a Claude Code plugin marketplace
+(`omarchy-dotfiles`) holding my mods, small TypeScript plugins that hook into
+Claude Code itself.
+
+| Mod | What |
+|---|---|
+| `context-bar` | `/context-bar` (or `/cb`) shows or hides the context window as a stacked bar above the prompt, a colour per category as `/context` draws them, with a legend. Updated after each turn and compaction; on or off stays across sessions |
+
+omarchy-supplement's `install-overrides.sh` installs each with
+`claude plugin install <mod> --marketplace ~/Code/omarchy-dotfiles/claude-mods`.
+Claude Code reads a mod from this folder, not a copy, so after an edit run
+`/reload-plugins`. Check one with `claude plugin validate claude-mods/<mod>`
+and `claude plugin test claude-mods/<mod>`. A new mod goes in
+`claude-mods/.claude-plugin/marketplace.json` and in the install loop in
+`install-overrides.sh`.
+
 ## Brain.fm
 
 `Super+B` opens Brain.fm in the bar: my player for it, kept in a repo of its

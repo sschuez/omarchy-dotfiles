@@ -1,0 +1,5 @@
+{
+  "name": "omarchy-dotfiles",
+  "owner": { "name": "Stephen Schuez" },
+  "plugins": [{ "name": "context-bar", "source": "./context-bar" }]
+}
