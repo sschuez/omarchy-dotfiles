@@ -96,7 +96,7 @@ Claude Code itself.
 
 | Mod | What |
 |---|---|
-| `context-bar` | `/context-bar` (or `/cb`) shows or hides the context window as a stacked bar above the prompt, a colour per category as `/context` draws them, with a legend. Updated after each turn and compaction; on or off stays across sessions |
+| `context-bar` | `/context-bar` (or `/cb`) shows or hides the context window as a stacked bar above the prompt, a colour per category as `/context` draws them, with a legend. Follows along live: updated after each tool call, turn, compaction and `/clear`; on or off stays across sessions |
 
 omarchy-supplement's `install-overrides.sh` installs each with
 `claude plugin install <mod> --marketplace ~/Code/omarchy-dotfiles/claude-mods`.

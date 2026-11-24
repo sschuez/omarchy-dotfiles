@@ -110,10 +110,26 @@ export const register: Register = on => {
     return result
   })
 
-  // A failed refresh must never fail the compaction itself.
+  // The refreshes below follow the bar during a turn and after /clear. A failed
+  // refresh must never fail what it follows: the tool call, the compaction.
+  on('tool.call', async ($, e, next) => {
+    const result = await next(e)
+    if (await read($, isShown)) await measure($).catch(() => undefined)
+
+    return result
+  }).catch(($, e, next) => next(e))
+
   on('session.compact', async ($, e, next) => {
     const result = await next(e)
     if (await read($, isShown)) await measure($).catch(() => undefined)
+
+    return result
+  }).catch(($, e, next) => next(e))
+
+  // /clear starts the conversation over without a session.start.
+  on('classic.SessionStart', async ($, e, next) => {
+    const result = await next(e)
+    if (e.source === 'clear' && (await read($, isShown))) await measure($).catch(() => undefined)
 
     return result
   }).catch(($, e, next) => next(e))
