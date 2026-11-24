@@ -68,6 +68,10 @@ dcr() {
   return $status
 }
 
+# ngrok tunnel on dev.submissio.ch (my paid ngrok account; the domain's CNAME
+# is in Cloudflare). Port 3000 by default, e.g. `tunnel 3001` for a worktree.
+tunnel() { ngrok http "${1:-3000}" --url=https://dev.submissio.ch; }
+
 # Herdr: tab names follow the running command, like tmux's automatic-rename.
 # Herdr has no event for a command starting or ending, so the shell tells my
 # tabs plugin (~/.config/herdr/tabs-plugin, linked by omarchy-supplement):

@@ -27,7 +27,7 @@ such folder links.
 
 | Package | Files in `~` | What | Loaded by |
 |---|---|---|---|
-| `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests). Last, the shell hook of my Herdr tabs plugin: it renames the tab when a command starts or ends (does nothing outside Herdr) | Include line in `~/.bashrc` |
+| `bash` | `.config/bash/aliases` | Aliases and functions: Bundler, tools, Docker Compose (`dcr` starts Selenium for system tests), `tunnel [port]` (ngrok on dev.submissio.ch, port 3000 by default). Last, the shell hook of my Herdr tabs plugin: it renames the tab when a command starts or ends (does nothing outside Herdr) | Include line in `~/.bashrc` |
 | `hypr` | `.config/hypr/overrides.lua` | Apple Studio Display at 2.5x, Caps Lock as Ctrl, window rounding, `Super+[` / `Super+]` previous/next workspace, `Super+U` / `Super+I` browser/terminal workspace (Shift moves the window there), `Alt+[` / `Alt+]` previous/next browser tab, the keys for Window Overview (`Super+E`, `Super+Tab`), `Super+B` for the Brain.fm panel, apps on fixed workspaces (1 HEY, 2 Chalet, 3 browser, 4 terminals, 5 WhatsApp/AppSignal/Signal, 6 Claude, 7 Files) on whichever screen has focus, workspaces that keep their number when a screen is unplugged or the lid closes | Include line in `~/.config/hypr/hyprland.lua` |
 | `omarchy` | `.config/omarchy/keyboard-layouts` | US International keyboard (`"` then `a` = ä) | Omarchy's Hyprland config. fcitx5 is matched by `install-keyboard.sh` in omarchy-supplement. |
 | | `.config/omarchy/plugins/stephen.workspaces/` | Clone of Omarchy's workspaces bar widget that shows all ten workspaces, not the first five | Omarchy shell (enabled by `install-overrides.sh`) |
